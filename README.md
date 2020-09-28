@@ -1,3 +1,4 @@
+## ScreenShotScavenger v0.9
 Notice: Version 0.9. Project is still in early development and APIs may be subject to change before final release.
 # Overview
 ScreenShotScavenger is a recon tool designed to identify leaks of sensitive information in screenshot images. Ocular Chatacter Recognition (OCR) is used to extract visible text from images to aid analysis. The modular design makes it simple to obtain images from a custom source, incorporate new technologies and to hunt for specific types of information. 
