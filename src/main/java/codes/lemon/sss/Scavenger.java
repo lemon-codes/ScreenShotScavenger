@@ -37,8 +37,8 @@ public class Scavenger {
 
     public Scavenger() {
         // initialise the scraper
-        //scraper = new PrntscScraper();
-        scraper = new DiskScraper();
+        scraper = new PrntscScraper();
+        //scraper = new DiskScraper();
         scraperIsEmpty = false;
         // initialise OCR engine
         ocrEngine = new OCRTess4J();
