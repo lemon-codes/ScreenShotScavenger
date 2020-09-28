@@ -1,6 +1,6 @@
-## ScreenShotScavenger v0.9
+# ScreenShotScavenger v0.9
 Notice: Version 0.9. Project is still in early development and APIs may be subject to change before final release.
-# Overview
+## Overview
 ScreenShotScavenger is a recon tool designed to identify leaks of sensitive information in screenshot images. Ocular Chatacter Recognition (OCR) is used to extract visible text from images to aid analysis. The modular design makes it simple to obtain images from a custom source, incorporate new technologies and to hunt for specific types of information. 
 
 The scavenger is stateful. It holds the details of one flagged image at a time, until the client requests the next flagged image be loaded. All result details are passed to the result manager in the background. 
@@ -13,7 +13,7 @@ Info leaks are found by Hunter modules. Hunter modules are provided access to ea
 
 Results are stored by the ResultManager. New ResultManagers can be written to accommodate varying use cases. The default implementation stores flagged images to disk in a folder named "HuntedImages" and stores abbreviated result details on disk in a CSV file names "AbbreviatedResults.csv". Abbreviated results include imageID, the unique name of hunter module that flagged image, reason for being flagged. 
 
-# Requirements/Dependencies
+## Requirements/Dependencies
 Environment dependencies:
 * Tesseract (any version supported by Tess4J. Tested with Tesseract v3 & v4)
 * Java SE 14
@@ -27,7 +27,7 @@ Package dependencies managed by Maven:
 
 
 
-#  Supported File Formats
+##  Supported File Formats
 Supports all file formats supported by Tess4J:
 * PNG
 * JPEG
@@ -35,7 +35,7 @@ Supports all file formats supported by Tess4J:
 * TIFF
 * BMP
 
-# Usage
+## Usage
 To run an example usage which hunts for 200 images hosted at prnt.sc before printing and saving results use:
 > ExampleUsage example = new ExampleUsage();<br />
 > example.run();
@@ -63,7 +63,7 @@ To shutdown gracefully and ensure results are written to disk (by closing open r
 Alternatively, to print results first before exit, call
 > scavenger.printResultsAndExit()
 
-# Example Results
+## Example Results
 >n6xzpt.png | SENSITIVE_KEYWORD_HUNTER | Detected keyword: "password"
 ><br />n6xzmi.png | PATTERN_MATCHING_HUNTER | "redacted@redacted.com" matched with regex: [a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+
 ><br />n6xzjg.png | SENSITIVE_KEYWORD_HUNTER | Detected keyword: "token"
@@ -76,7 +76,7 @@ Alternatively, to print results first before exit, call
 ><br />n6xzcd.png | PATTERN_MATCHING_HUNTER | "redacted@redacted.com" matched with regex: [a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+
 ><br />n6y006.png | SENSITIVE_KEYWORD_HUNTER | Detected keyword: "password"
 
-# Known Defects
+## Known Defects
 Some versions of Tesseract write a warning message to stdout if a dpi value is not present in an images metadata. This occurs when images are being scraped from a source which has previously stripped all image metadata. This does not appear to effect the end results since Tesseract uses a reasonable dpi in such cases and is still able to extract the text accurately. For the most part the only impact of  this defect is the unsightly warning messages, however there may be edge cases (images with very high or low dpi) where this impacts the accuracy of the results. I am unable to fix this without delving into the code base of Tess4J which falls outside the scope of this project and will remain so due to time constraints imposed by myself. Tesseract v3 does not produce such warning messages and has similarly accurate results as Tesseract v4 for this use case. 
 
 
