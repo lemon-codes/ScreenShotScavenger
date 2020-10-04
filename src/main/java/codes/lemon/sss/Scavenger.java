@@ -218,32 +218,33 @@ public class Scavenger {
      * Add a hunter module to the scavenger. This module will
      * be used to analyse any future images for indicators of sensitive
      * data
-     * // TODO: USE GENERICS
-     * @param h a hunter module
+     * @param h a hunter module. Must not be null
      */
     public void addHunter(Hunter h) {
-        if (h != null) {
-            hunters.add(h);
-        }
-        else {
-            throw new IllegalArgumentException("Hunter h cannot be null");
-        }
+        hunters.add(Objects.requireNonNull(h));
     }
 
     /***
-     * Removes a hunter module from the scavenger
-     * // TODO: USE GENERICS
+     * Removes a hunter module from the scavenger. Comparison is based on class name.
      * @param h a hunter module already loaded in the scavenger
      * @return true if the hunter module was successfully removed,
      *          false if the hunter module is not currently loaded
      *          and therefore cannot be removed.
      */
     public boolean removeHunter(Hunter h) {
-        // TODO: use instanceOf() to compare the run time class type of each hunter
-        //      in the collection with the run time class type of Hunter h
-        if (hunters.contains(h)) {
-            hunters.remove(h);
-            return true;
+        // TODO: offer base class for Hunters to extend. Base class will implement equals() and
+        //       hashcode(). All Hunter implementations will extend base class. List.contains()
+        //       uses objects equals() equals method to compare elements. By overriding equals(),
+        //       we can ensure hunters are compared using their unique name field. This will allow
+        //       hunters.contains(Hunter h) to be used to remove modules with same unique name as h.
+        final Hunter target = Objects.requireNonNull(h);
+
+        for (Hunter candidate : hunters) {
+            // comparison is based on class name
+            if (candidate.getClass().equals(target.getClass())) {
+                hunters.remove(candidate);
+                return true;
+            }
         }
         return false;
     }
@@ -255,19 +256,13 @@ public class Scavenger {
      * from newScraper.
      * // TODO: USE GENERICS
      * @param newScraper a scraper which will be used as a source for future images.
-     *                   Must not be null or an IllegalArgumentException will be thrown.
+     *                   Must not be null.
      */
     public void loadNewScraper(Scraper newScraper) {
-        if (newScraper != null) {
-            scraper = newScraper;
-            scraperIsEmpty = false; // mark the new scraper as not being empty
-            images.clear();  // clear the image buffer to remove reference to any images from the old scraper
-            fillBufferWithImages();  // refill image buffer with images from new scraper
-        }
-        else {
-            // illegal null-parameter passed as newScraper
-            throw new IllegalArgumentException("Scraper newScraper cannot be null");
-        }
+        scraper = Objects.requireNonNull(newScraper);
+        scraperIsEmpty = false; // mark the new scraper as not being empty
+        images.clear();  // clear the image buffer to remove reference to any images from the old scraper
+        fillBufferWithImages();  // refill image buffer with images from new scraper
     }
 
     /***
