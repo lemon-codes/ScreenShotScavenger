@@ -1,10 +1,14 @@
 package codes.lemon.sss;
 
+import codes.lemon.sss.hunters.HunterFactory;
+
 public class ExampleUsage {
     private final Scavenger scavenger;
 
     public ExampleUsage() {
-        scavenger = new Scavenger();
+
+        //scavenger = new Scavenger();
+        scavenger = new Scavenger.Builder().build();
     }
     /***
      * Find 200 images that our Hunter modules have flagged as potentially containing sensitive information.

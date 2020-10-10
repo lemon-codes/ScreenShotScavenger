@@ -55,7 +55,6 @@ public class PrntscScraper implements Scraper{
      * in the buffer.
      */
     public void nextImage() {
-
         try {
             // take() blocks if the buffer is empty
             currentImage = imageBuffer.take();

@@ -23,25 +23,107 @@ import codes.lemon.sss.scrapers.*;
  * loaded in the scavenger. If no hunters report success, then we load the next image for the hunter modules
  * to process next. We use these hunters in this way to allow the client to load the next image we suspect
  * has sensitive info, skipping those which don't.
+ *
+ * TODO: Builder pattern for Scavenger construction
+ *
  */
 public class Scavenger {
-    private static final int BUFFER_SIZE = 20;
-    private static final boolean OCR_ENABLED = true;
+
+
+    public static class Builder {
+
+        //private Scraper scraper = new PrntscScraper();
+        private Scraper scraper = new DiskScraper();
+        private OCREngine ocrEngine = new OCRTess4J();
+        private HunterFactory hunterFactory = HunterFactory.getHunterFactoryInstance();
+        private ResultsManager resultsManager = new ResultsManagerCSV();
+        private int bufferSize = 20;
+        private boolean ocrEnabled = true;
+        private boolean huntingEnabled = true;
+
+
+        // upper bound wildcard used to allow subclasses of Scraper implementations to be used
+        public <T extends Scraper> Builder setScraper(T scraper) {
+            this.scraper = Objects.requireNonNull(scraper);
+            return this;
+        }
+
+        public <T extends OCREngine> Builder setOCREnging(T ocrEngine) {
+            this.ocrEngine = Objects.requireNonNull(ocrEngine);
+            return this;
+        }
+
+        public <T extends HunterFactory> Builder setHunterFactory(T hunterFactory) {
+            this.hunterFactory = Objects.requireNonNull(hunterFactory);
+            return this;
+        }
+
+        public <T extends ResultsManager> Builder setResultsManager(T resultsManager) {
+            this.resultsManager = Objects.requireNonNull(resultsManager);
+            return this;
+        }
+
+        public Builder setBufferSize(int bufferSize) {
+            this.bufferSize = Objects.requireNonNull(bufferSize);
+            return this;
+        }
+
+        public Builder enableOCR(boolean ocrEnabled) {
+            this.ocrEnabled = Objects.requireNonNull(ocrEnabled);
+            return this;
+        }
+
+        public Builder enableHunting(boolean huntingEnabled) {
+            this.huntingEnabled = Objects.requireNonNull(huntingEnabled);
+            return this;
+        }
+
+        public Scavenger build() {
+            return new Scavenger(this);
+        }
+    }
+
+    private Scraper scraper; // TODO: final
     private final OCREngine ocrEngine;
-    private final Queue<ImageData> images;
+    private final HunterFactory hunterFactory;
     private final ResultsManager results;
+    private final int bufferSize;
+    private final boolean ocrEnabled;
+    private final boolean huntingEnabled;
+    private final Queue<ImageData> images;
+
     private List<Hunter> hunters;
-    private Scraper scraper;
     private ImageData currentImage;
     private boolean scraperIsEmpty;
 
-    public Scavenger() {
+    private Scavenger(Builder builder) {
+        this.scraper = builder.scraper;
+        this.ocrEngine = builder.ocrEngine;
+        this.hunterFactory = builder.hunterFactory;
+        this.results = builder.resultsManager;
+        this.bufferSize = builder.bufferSize;
+        this.ocrEnabled = builder.ocrEnabled;
+        this.huntingEnabled = builder.huntingEnabled;
+        images = new LinkedList<>();
+        initBuffer();
+        loadHunters();
+    }
+
+
+    // TODO: REMOVE
+    private Scavenger() {
+        bufferSize = 20;
+        ocrEnabled = true;
+        huntingEnabled = true;
+
         // initialise the scraper
         scraper = new PrntscScraper();
         //scraper = new DiskScraper();
         scraperIsEmpty = false;
         // initialise OCR engine
         ocrEngine = new OCRTess4J();
+        // intialise hunter provider
+        hunterFactory = HunterFactory.getHunterFactoryInstance();
         // initialise hunters
         hunters = new ArrayList<>();
         loadHunters();
@@ -58,7 +140,7 @@ public class Scavenger {
      * are obtained from codes.lemon.sss.hunters.HunterFactory
      */
     private void loadHunters() {
-        hunters = Objects.requireNonNull(HunterFactory.getHunterFactoryInstance().getInitializedHunters());
+        hunters = Objects.requireNonNull(hunterFactory.getInitializedHunters());
     }
 
     /***
@@ -86,7 +168,7 @@ public class Scavenger {
         }
 
         assert(images != null) : "image collection in Scavenger == null";
-        while (images.size() < BUFFER_SIZE) {
+        while (images.size() < bufferSize) {
             String id = Objects.requireNonNull(scraper.getImageID());
             BufferedImage img = Objects.requireNonNull(scraper.getImageContent());
             String text = Objects.requireNonNull(getTextFromImageUsingOCR(img));
@@ -114,7 +196,7 @@ public class Scavenger {
      */
     private String getTextFromImageUsingOCR(BufferedImage image) {
         String imageText;
-        if (OCR_ENABLED) {
+        if (ocrEnabled) {
             // a deep copy of the image is passed to OCR Engine to allow the OCR engine to
             // alter the image if necessary to improve results.
             imageText = ocrEngine.getText(getDeepCopyOfImage(image)); // returns empty string ("") if no text
@@ -168,6 +250,13 @@ public class Scavenger {
      * retrieve the details of this image.
      */
     public void loadNextHuntedImage() {
+
+        // TODO: Refactor so currentImage is not changed until hunted image found.
+        //       change loadNextImage() to getNextImage(). Return image instead of updating currentImage.
+        //       change this method name to "loadNextImage()". Check huntingEnabled.
+        //       If false. update currentImage to image returned by getNextImage().
+        //       If true, perform hunting. Once image hunted, update currentImage.
+        //       This will ensure Scavenger stays in a consistent state.
         while (true) {
             // iterate through images
             loadNextImage(); // shuts down if no next image
@@ -199,7 +288,7 @@ public class Scavenger {
 
     /***
      * Returns the content of the current image as a BufferedImage
-     * @return current image as a BufferedImage
+      * @return current image as a BufferedImage
      */
     public BufferedImage getCurrentImage() {
         return currentImage.getContent();
@@ -255,10 +344,10 @@ public class Scavenger {
      * to loadNextImage() or loadNextHuntedImage() will use images obtained
      * from newScraper.
      * // TODO: USE GENERICS
-     * @param newScraper a scraper which will be used as a source for future images.
+     * @param newScraper a scraper (or subclass) which will be used as a source for future images.
      *                   Must not be null.
      */
-    public void loadNewScraper(Scraper newScraper) {
+    public <T extends Scraper> void loadNewScraper(T newScraper) {
         scraper = Objects.requireNonNull(newScraper);
         scraperIsEmpty = false; // mark the new scraper as not being empty
         images.clear();  // clear the image buffer to remove reference to any images from the old scraper
