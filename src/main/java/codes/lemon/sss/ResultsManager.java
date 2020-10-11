@@ -9,6 +9,8 @@ import java.util.List;
  * printResults()
  */
 public interface ResultsManager {
+    ResultsManager EMPTY_RESULT_MANAGER = new ResultsManagerEmpty();
+
     /***
      * Stores the details of a single result.
      * @param result a result to be stored.

@@ -1,5 +1,6 @@
 package codes.lemon.sss.hunters;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /***
@@ -15,7 +16,8 @@ public interface HunterFactory {
      * Returns an initialised instance of the default implementation of this interface
      * @return an instance which implements this interface
      */
-    static HunterFactory getHunterFactoryInstance() { return DEFAULT_IMPLEMENTATION; }
+    static HunterFactory getDefaultHunterFactoryInstance() { return DEFAULT_IMPLEMENTATION; }
+
 
     /***
      * Provides access to an initialized instances of all pre-defined

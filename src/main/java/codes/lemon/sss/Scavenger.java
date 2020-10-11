@@ -24,22 +24,31 @@ import codes.lemon.sss.scrapers.*;
  * to process next. We use these hunters in this way to allow the client to load the next image we suspect
  * has sensitive info, skipping those which don't.
  *
- * TODO: Builder pattern for Scavenger construction
  *
  */
 public class Scavenger {
 
 
+    /***
+     * Implements the builder design pattern to construct Scavenger instances.
+     * Using the builder pattern here ensures that the Scavenger is initialised to a valid state,
+     * rather than providing setters to the client which may cause a poorly programmed client to
+     * alter a scavenger instance in such a way that its state becomes invalid resulting in
+     * nondeterministic behaviour.
+     * Lower bound wildcards are used to allow subclasses of components to be supplied.
+     */
     public static class Builder {
 
         //private Scraper scraper = new PrntscScraper();
         private Scraper scraper = new DiskScraper();
         private OCREngine ocrEngine = new OCRTess4J();
-        private HunterFactory hunterFactory = HunterFactory.getHunterFactoryInstance();
+        //private HunterFactory hunterFactory = HunterFactory.getDefaultHunterFactoryInstance();
+        private List<Hunter> hunters = HunterFactory.getDefaultHunterFactoryInstance().getInitializedHunters();
         private ResultsManager resultsManager = new ResultsManagerCSV();
         private int bufferSize = 20;
         private boolean ocrEnabled = true;
         private boolean huntingEnabled = true;
+        private boolean resultsManagerEnabled = true;
 
 
         // upper bound wildcard used to allow subclasses of Scraper implementations to be used
@@ -54,7 +63,15 @@ public class Scavenger {
         }
 
         public <T extends HunterFactory> Builder setHunterFactory(T hunterFactory) {
-            this.hunterFactory = Objects.requireNonNull(hunterFactory);
+            HunterFactory factory = Objects.requireNonNull(hunterFactory);
+            // new list to prevent client modifying list during execution. Hunters are immutable so no need to make deep copies
+            List<Hunter> suppliedHunters = new ArrayList<>();
+            for (Hunter hunter : Objects.requireNonNull(factory.getInitializedHunters())) {
+                // Objects.requireNull used rather than discarding null values because we want to fail fast
+                // if a hunter implementation hasn't been initialised properly rather than obscure that fact
+                suppliedHunters.add(Objects.requireNonNull(hunter));
+            }
+            this.hunters = suppliedHunters;
             return this;
         }
 
@@ -64,83 +81,76 @@ public class Scavenger {
         }
 
         public Builder setBufferSize(int bufferSize) {
-            this.bufferSize = Objects.requireNonNull(bufferSize);
+            if (bufferSize > 0) {
+                this.bufferSize = bufferSize;
+            }
             return this;
         }
 
         public Builder enableOCR(boolean ocrEnabled) {
-            this.ocrEnabled = Objects.requireNonNull(ocrEnabled);
+            this.ocrEnabled = ocrEnabled;
+
             return this;
         }
 
         public Builder enableHunting(boolean huntingEnabled) {
-            this.huntingEnabled = Objects.requireNonNull(huntingEnabled);
+            this.huntingEnabled = huntingEnabled;
             return this;
         }
 
+        public Builder enableResultsManager(boolean resultsManagerEnabled) {
+            this.resultsManagerEnabled = Objects.requireNonNull(resultsManagerEnabled);
+            return this;
+        }
+
+        private void releaseUnusedResources() {
+            // allow ocrEngine to be garbage collected if OCR is disabled
+            ocrEngine = ocrEnabled ? ocrEngine : OCREngine.EMPTY_OCR_ENGINE;
+
+            // Allow Hunter instances to be garbage collected if hunting disabled
+            // Empty list returned rather than null to prevent null checks littering code
+            hunters = huntingEnabled ? hunters : Collections.EMPTY_LIST;
+
+            // If resultsManager is disabled, replace results manager with one which discards all results.
+            // This allows the original resultsManager resources to be garbage collected,
+            if (!resultsManagerEnabled) {
+                // EMPTY_RESULT_MANAGER is used rather than null to prevent Scavenger code being littered with null checks.
+                resultsManager = ResultsManager.EMPTY_RESULT_MANAGER;
+            }
+        }
+
         public Scavenger build() {
+            releaseUnusedResources();
             return new Scavenger(this);
         }
     }
 
     private Scraper scraper; // TODO: final
     private final OCREngine ocrEngine;
-    private final HunterFactory hunterFactory;
+    //private final HunterFactory hunterFactory;
     private final ResultsManager results;
     private final int bufferSize;
     private final boolean ocrEnabled;
     private final boolean huntingEnabled;
+    private final boolean resultsManagerEnabled;
     private final Queue<ImageData> images;
 
-    private List<Hunter> hunters;
+    private List<Hunter> hunters;  // TODO: final
     private ImageData currentImage;
     private boolean scraperIsEmpty;
 
     private Scavenger(Builder builder) {
-        this.scraper = builder.scraper;
-        this.ocrEngine = builder.ocrEngine;
-        this.hunterFactory = builder.hunterFactory;
-        this.results = builder.resultsManager;
-        this.bufferSize = builder.bufferSize;
-        this.ocrEnabled = builder.ocrEnabled;
-        this.huntingEnabled = builder.huntingEnabled;
+        bufferSize = builder.bufferSize;
+        scraper = builder.scraper;
+        ocrEnabled = builder.ocrEnabled;
+        ocrEngine = builder.ocrEngine;
+        huntingEnabled = builder.huntingEnabled;
+        hunters = builder.hunters;
+
+        resultsManagerEnabled = builder.resultsManagerEnabled;
+        results = builder.resultsManager;
         images = new LinkedList<>();
         initBuffer();
-        loadHunters();
-    }
-
-
-    // TODO: REMOVE
-    private Scavenger() {
-        bufferSize = 20;
-        ocrEnabled = true;
-        huntingEnabled = true;
-
-        // initialise the scraper
-        scraper = new PrntscScraper();
-        //scraper = new DiskScraper();
-        scraperIsEmpty = false;
-        // initialise OCR engine
-        ocrEngine = new OCRTess4J();
-        // intialise hunter provider
-        hunterFactory = HunterFactory.getHunterFactoryInstance();
-        // initialise hunters
-        hunters = new ArrayList<>();
-        loadHunters();
-        // preload images
-        images = new LinkedList<>();
-        initBuffer();
-        // initialise results manager
-        results = new ResultsManagerCSV();
-    }
-
-    /***
-     * Loads the Hunter modules which will be used to hunt for
-     * sensitive information in images. Instances of Hunter modules
-     * are obtained from codes.lemon.sss.hunters.HunterFactory
-     */
-    private void loadHunters() {
-        hunters = Objects.requireNonNull(hunterFactory.getInitializedHunters());
     }
 
     /***
@@ -307,26 +317,26 @@ public class Scavenger {
      * Add a hunter module to the scavenger. This module will
      * be used to analyse any future images for indicators of sensitive
      * data
-     * @param h a hunter module. Must not be null
+     * @param hunter a hunter module. Must not be null
      */
-    public void addHunter(Hunter h) {
-        hunters.add(Objects.requireNonNull(h));
+    public <T extends Hunter> void addHunter(T hunter) {
+        hunters.add(Objects.requireNonNull(hunter));
     }
 
     /***
      * Removes a hunter module from the scavenger. Comparison is based on class name.
-     * @param h a hunter module already loaded in the scavenger
+     * @param hunter a hunter module already loaded in the scavenger
      * @return true if the hunter module was successfully removed,
      *          false if the hunter module is not currently loaded
      *          and therefore cannot be removed.
      */
-    public boolean removeHunter(Hunter h) {
+    public <T extends Hunter> boolean removeHunter(T hunter) {
         // TODO: offer base class for Hunters to extend. Base class will implement equals() and
         //       hashcode(). All Hunter implementations will extend base class. List.contains()
         //       uses objects equals() equals method to compare elements. By overriding equals(),
         //       we can ensure hunters are compared using their unique name field. This will allow
         //       hunters.contains(Hunter h) to be used to remove modules with same unique name as h.
-        final Hunter target = Objects.requireNonNull(h);
+        final Hunter target = Objects.requireNonNull(hunter);
 
         for (Hunter candidate : hunters) {
             // comparison is based on class name
@@ -343,7 +353,6 @@ public class Scavenger {
      * be used as the source of all future images. Any subsequent requests
      * to loadNextImage() or loadNextHuntedImage() will use images obtained
      * from newScraper.
-     * // TODO: USE GENERICS
      * @param newScraper a scraper (or subclass) which will be used as a source for future images.
      *                   Must not be null.
      */
