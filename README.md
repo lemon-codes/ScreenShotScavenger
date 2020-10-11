@@ -3,6 +3,8 @@ Notice: Version 0.9. Project is still in early development and APIs may be subje
 ## Overview
 ScreenShotScavenger is a recon tool designed to identify leaks of sensitive information in screenshot images. Ocular Chatacter Recognition (OCR) is used to extract visible text from images to aid analysis. The modular design makes it simple to obtain images from a custom source, incorporate new technologies and to hunt for specific types of information. 
 
+A Scavenger instance is constructed using a Builder, allowing custom components to be supplied by the client and for certain features to be disabled when not required.
+
 The scavenger is stateful. It holds the details of one flagged image at a time, until the client requests the next flagged image be loaded. All result details are passed to the result manager in the background. 
 
 ScreenShotScavenger makes use of a scraper to obtain images for analysis. A buffer sits between the Scraper and the Scavenger to reduce the impact of any latency issues caused by Scraper implementations potential reliance on network I/O. New scrapers can be written and used by ScreenShotScavenger to obtain images from a custom source. The default implementation obtains screenshot images hosted publicly at prnt.sc (LightShot). It is multithreaded, however rate limiting performed on requests by LightShot servers limit the potential. It was trivial to write a Scraper for images hosted at prnt.sc as the images are identified by 6 digit codes which can be iterated through to obtain consecutive images. This is something the LightShot team should seriously consider changing to reduce the chances of information leaks being found by malicious actors. 
@@ -36,26 +38,26 @@ Supports all file formats supported by Tess4J:
 * BMP
 
 ## Usage
-To run an example usage which hunts for 200 images hosted at prnt.sc before printing and saving results use:
+To run an example usage which hunts for 50 images hosted at prnt.sc before printing and saving results use:
 > ExampleUsage example = new ExampleUsage();<br />
 > example.run();
 
-Or, manually instantiate a new Scavenger instance and begin preloading images
-> Scavenger scavenger = new Scavenger();
+To manually instantiate a new Scavenger instance, the Builder must be used. This allows the client to supply custom implementations of key components for use by the Scavenger. It also allows for certain functionality to be disabled when not required. In cases where functionality is enabled but no custom implementation has been supplied, default implementations will be used.
+>// Create instance with all functionality enabled and default implementations used <br />
+>Scavenger scavenger = new Scavenger.Builder().build();  
+>
+>// Create instance with custom scraper. Hunting and report manager disabled.
+>Scavenger scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).enableHunting(false).enableReportsManager(false).build();
 
-To update the Scavengers state by hunting out the first image containing sensitive data call:
-> scavenger.getNextHuntedImage();
+See Builder documentation for a full list of customisations available.
+The Builder ensures that all Scavenger are instantiated to a valid and optimal (unused resources are freed) state.
 
-This will begin the process of hunting through images for sensitive data. When a Hunter module flags an image, `getNextHuntedImage()` will return and the flagged image will be considered the Scavengers state. 
-The client can now query the Scavenger for details about the image (full result details are handled by the Result Manager).
+From initialisation the Scavengers state will contain details of a hunted image (or the first obtained  image if hunting disabled). This state can be queried to obtain details about the currently loaded image (Note: full result details are handled by the Result Manager).
 > String flaggedImageID = scavenger.getCurrentImageID();<br />
 > String flaggedImageText = scavenger.getCurrentImageOCRText();<br />
 > BufferedImage flaggedImage = scavenger.getCurrentImage();
 
-Every subsequent call to `loadNextHuntedImage()` will result in a new image being hunted. The Scavengers state is the updated to contain this images details.
-
-To utilise ScreenShotScavenger as a scraper that supports OCR (disables hunting) call the following method instead
-> scavenger.loadNextImage();
+Every subsequent call to `loadNextImage()` will result in a new image being hunted. The Scavengers state is then updated to contain this images details. If hunting is disabled, images are made available to the client in the order the Scraper provides them.
 
 To shutdown gracefully and ensure results are written to disk (by closing open resources) call
 > scavenger.exit()
