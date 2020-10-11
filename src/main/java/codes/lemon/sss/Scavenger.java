@@ -39,10 +39,8 @@ public class Scavenger {
      */
     public static class Builder {
 
-        //private Scraper scraper = new PrntscScraper();
-        private Scraper scraper = new DiskScraper();
+        private Scraper scraper = new PrntscScraper(); // TODO: perform initialisation of required defaults in build()
         private OCREngine ocrEngine = new OCRTess4J();
-        //private HunterFactory hunterFactory = HunterFactory.getDefaultHunterFactoryInstance();
         private List<Hunter> hunters = HunterFactory.getDefaultHunterFactoryInstance().getInitializedHunters();
         private ResultsManager resultsManager = new ResultsManagerCSV();
         private int bufferSize = 20;
@@ -99,7 +97,7 @@ public class Scavenger {
         }
 
         public Builder enableResultsManager(boolean resultsManagerEnabled) {
-            this.resultsManagerEnabled = Objects.requireNonNull(resultsManagerEnabled);
+            this.resultsManagerEnabled = resultsManagerEnabled;
             return this;
         }
 
@@ -125,19 +123,18 @@ public class Scavenger {
         }
     }
 
-    private Scraper scraper; // TODO: final
+    private final Scraper scraper;
     private final OCREngine ocrEngine;
-    //private final HunterFactory hunterFactory;
     private final ResultsManager results;
     private final int bufferSize;
     private final boolean ocrEnabled;
     private final boolean huntingEnabled;
     private final boolean resultsManagerEnabled;
-    private final Queue<ImageData> images;
-
-    private List<Hunter> hunters;  // TODO: final
+    private final Queue<ImageData> imageBuffer;
+    private final List<Hunter> hunters;
+    private boolean scraperIsEmpty = false;
     private ImageData currentImage;
-    private boolean scraperIsEmpty;
+
 
     private Scavenger(Builder builder) {
         bufferSize = builder.bufferSize;
@@ -149,7 +146,7 @@ public class Scavenger {
 
         resultsManagerEnabled = builder.resultsManagerEnabled;
         results = builder.resultsManager;
-        images = new LinkedList<>();
+        imageBuffer = new LinkedList<>();
         initBuffer();
     }
 
@@ -159,8 +156,9 @@ public class Scavenger {
      * image in the buffer as the current image and then refill the buffer.
      */
     private void initBuffer() {
+        // TODO: use nextImage() to ensure only a hunted image is loaded
         fillBufferWithImages(); // fill the buffer with some initial data
-        currentImage = images.poll();  // load an initial image from the buffer
+        loadNextImage();  // load an initial image
         fillBufferWithImages(); // replace the image we just removed from the buffer
     }
 
@@ -177,14 +175,14 @@ public class Scavenger {
             return;
         }
 
-        assert(images != null) : "image collection in Scavenger == null";
-        while (images.size() < bufferSize) {
+        assert(imageBuffer != null) : "image collection in Scavenger == null";
+        while (imageBuffer.size() < bufferSize) {
             String id = Objects.requireNonNull(scraper.getImageID());
             BufferedImage img = Objects.requireNonNull(scraper.getImageContent());
             String text = Objects.requireNonNull(getTextFromImageUsingOCR(img));
 
             ImageData image = new ImageData(id, img, text);
-            images.add(image);
+            imageBuffer.add(image);
 
             try {
                 scraper.nextImage(); // load next image in scraper for future use
@@ -236,49 +234,53 @@ public class Scavenger {
 
 
     /***
-     * Loads the next image in the order the scraper has provided them in.
+     * Returns the next image in the order the scraper has provided them in.
      * If there is no next image available we stop execution.
+     * @return next image from scraper, else shutdown if none available
      */
-    public void loadNextImage() {
-        if (images.size() > 0) {
-            currentImage = images.poll();
-            //System.out.println(currentImage.getID());
+    private ImageData getNextImage() {
+        if (imageBuffer.size() > 0) {
+            ImageData nextImage = imageBuffer.poll();
             fillBufferWithImages();  // ensures buffer does not become empty
+            return nextImage;
         }
         else {
             System.out.println("We have ran out of images to process." +
                                 "The scraper in use has indicated it cannot provide any more images.");
             System.out.println("We will print out the results and finish up now!");
             printResultsAndExit();
+            return null; // will never be reached
         }
     }
 
     /***
-     * Iterates through images and uses all loaded hunter modules to analyse each image.
+     * If hunting is disabled, we set currentImage to next image provided by the scraper.
+     * If hunting is enabled, we iterate through images and uses all loaded hunter modules to analyse each image.
      * We stops when a hunter has found something which indicates an image contains
      * sensitive data. This image then becomes the current image. Getters can be used to
      * retrieve the details of this image.
      */
-    public void loadNextHuntedImage() {
+    public void loadNextImage() {
 
-        // TODO: Refactor so currentImage is not changed until hunted image found.
-        //       change loadNextImage() to getNextImage(). Return image instead of updating currentImage.
-        //       change this method name to "loadNextImage()". Check huntingEnabled.
-        //       If false. update currentImage to image returned by getNextImage().
-        //       If true, perform hunting. Once image hunted, update currentImage.
-        //       This will ensure Scavenger stays in a consistent state.
+        // if hunting is disabled, images are provided sequentially as the scraper supplies them
+        if (!huntingEnabled) {
+            currentImage = getNextImage();  // shutdown down if no image available
+            return;
+        }
+
+        // hunting is enabled, so iterate through images until a hunter flags one
         while (true) {
-            // iterate through images
-            loadNextImage(); // shuts down if no next image
-            // allow all hunters to process the current image. Stop if a hunter is successful
+            ImageData imageForAnalysis = getNextImage(); // shuts down if no next image
+            assert imageForAnalysis != null : "null image supplied to Scavenger";
+            // allow all hunters to analyse the image. Stop if a hunter finds something
             for (Hunter hunter : hunters) {
                 //returns null if nothing found
-                String resultDetails = hunter.hunt(currentImage.getID(), currentImage.getContent(), currentImage.getText());
+                String resultDetails = hunter.hunt(imageForAnalysis.getID(), imageForAnalysis.getContent(), imageForAnalysis.getText());
                 if (resultDetails != null) {
                     // a hunter has found something.
                     // save the name of the hunter which has flagged this image as a result
                     String resultAuthor = hunter.getHunterModuleName();
-
+                    currentImage = imageForAnalysis;  // update current image
                     // store the details of this find in the results manager
                     ResultData result = new ResultDataImp(currentImage, resultAuthor, resultDetails);
                     results.addResult(result);
@@ -346,21 +348,6 @@ public class Scavenger {
             }
         }
         return false;
-    }
-
-    /***
-     * Accepts a Scraper as a parameter and sets this as the scraper to
-     * be used as the source of all future images. Any subsequent requests
-     * to loadNextImage() or loadNextHuntedImage() will use images obtained
-     * from newScraper.
-     * @param newScraper a scraper (or subclass) which will be used as a source for future images.
-     *                   Must not be null.
-     */
-    public <T extends Scraper> void loadNewScraper(T newScraper) {
-        scraper = Objects.requireNonNull(newScraper);
-        scraperIsEmpty = false; // mark the new scraper as not being empty
-        images.clear();  // clear the image buffer to remove reference to any images from the old scraper
-        fillBufferWithImages();  // refill image buffer with images from new scraper
     }
 
     /***

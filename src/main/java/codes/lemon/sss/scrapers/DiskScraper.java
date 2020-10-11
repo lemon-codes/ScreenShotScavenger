@@ -32,6 +32,7 @@ public class DiskScraper implements Scraper {
      */
     @Override
     public void nextImage() throws NoImageAvailableException {
+        System.out.println("disk");
         if (images.size() > 0) {
             currentImage = images.remove(); // throws error when no images left
         }

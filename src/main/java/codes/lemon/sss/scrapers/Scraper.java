@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage;
  * It is the scrapers duty to load a valid image. If the scraper cannot do so
  * instantly then it must work/wait until it can. If the scraper will not be
  * able to provide any more images then it must throw a NoImageAvailableException
- * to notify the client.
+ * to notify the client. A scraper must have a valid image loaded upon initialisation.
  */
 public interface Scraper {
     /***
