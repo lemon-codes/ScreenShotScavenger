@@ -39,15 +39,14 @@ public class Scavenger {
      */
     public static class Builder {
 
-        private Scraper scraper = new PrntscScraper(); // TODO: perform initialisation of required defaults in build()
-        private OCREngine ocrEngine = new OCRTess4J();
-        private List<Hunter> hunters = HunterFactory.getDefaultHunterFactoryInstance().getInitializedHunters();
-        private ResultsManager resultsManager = new ResultsManagerCSV();
+        private Scraper scraper;
+        private OCREngine ocrEngine;
+        private List<Hunter> hunters;
+        private ResultsManager resultsManager;
         private int bufferSize = 20;
         private boolean ocrEnabled = true;
         private boolean huntingEnabled = true;
         private boolean resultsManagerEnabled = true;
-
 
         // upper bound wildcard used to allow subclasses of Scraper implementations to be used
         public <T extends Scraper> Builder setScraper(T scraper) {
@@ -101,6 +100,7 @@ public class Scavenger {
             return this;
         }
 
+
         private void releaseUnusedResources() {
             // allow ocrEngine to be garbage collected if OCR is disabled
             ocrEngine = ocrEnabled ? ocrEngine : OCREngine.EMPTY_OCR_ENGINE;
@@ -117,8 +117,31 @@ public class Scavenger {
             }
         }
 
+        /***
+         * Initialises default implementations of required components which
+         * have not been supplied by the client. These default components are
+         * not subject to inline field initialisation because initialising them
+         * can be resource expensive, so we wait until we know if they are required
+         */
+        private void initialiseRequiredDefaults() {
+            scraper = (scraper == null) ? new PrntscScraper() : scraper;
+
+            if (ocrEnabled && (ocrEngine == null)) {
+                ocrEngine = new OCRTess4J();
+            }
+
+            if (huntingEnabled && (hunters == null)) {
+                hunters = HunterFactory.getDefaultHunterFactoryInstance().getInitializedHunters();
+            }
+
+            if (resultsManagerEnabled && (resultsManager == null)) {
+                resultsManager = new ResultsManagerCSV();
+            }
+        }
+
         public Scavenger build() {
             releaseUnusedResources();
+            initialiseRequiredDefaults();
             return new Scavenger(this);
         }
     }
