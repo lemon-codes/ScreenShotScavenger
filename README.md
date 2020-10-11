@@ -42,14 +42,14 @@ To run an example usage which hunts for 50 images hosted at prnt.sc before print
 > ExampleUsage example = new ExampleUsage();<br />
 > example.run();
 
-To manually instantiate a new Scavenger instance, the Builder must be used. This allows the client to supply custom implementations of key components for use by the Scavenger. It also allows for certain functionality to be disabled when not required. In cases where functionality is enabled but no custom implementation has been supplied, default implementations will be used.
+To manually instantiate a new Scavenger instance, the Builder must be used. This allows the client to supply custom implementations of key components for use by the Scavenger. It also allows for certain functionality to be disabled when not required. In cases where functionality is enabled but no custom implementation has been supplied, default implementations will be used. Default implementations are initialised just in time when build() is called. This allows us to initialise only the default implementations needed at run time.
 >// Create instance with all functionality enabled and default implementations used <br />
 >Scavenger scavenger = new Scavenger.Builder().build();  
 >
 >// Create instance with custom scraper. Hunting and report manager disabled.
 >Scavenger scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).enableHunting(false).enableReportsManager(false).build();
 
-See Builder documentation for a full list of customisations available.
+See Builder documentation for a full list of customisations available. All methods which accept custom components use upper bound wildcards to allow subclasses of implementations to be used.
 The Builder ensures that all Scavenger are instantiated to a valid and optimal (unused resources are freed) state.
 
 From initialisation the Scavengers state will contain details of a hunted image (or the first obtained  image if hunting disabled). This state can be queried to obtain details about the currently loaded image (Note: full result details are handled by the Result Manager).

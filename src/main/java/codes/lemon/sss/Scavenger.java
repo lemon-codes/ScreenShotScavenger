@@ -35,7 +35,7 @@ public class Scavenger {
      * rather than providing setters to the client which may cause a poorly programmed client to
      * alter a scavenger instance in such a way that its state becomes invalid resulting in
      * nondeterministic behaviour.
-     * Lower bound wildcards are used to allow subclasses of components to be supplied.
+     * Upper bound wildcards are used to allow subclasses of components to be supplied.
      */
     public static class Builder {
 
