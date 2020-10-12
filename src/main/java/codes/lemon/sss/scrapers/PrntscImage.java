@@ -20,6 +20,8 @@ import java.net.URL;
  *
  */
 final class PrntscImage {
+    private static int rateLimitFailures = 0;  // keeps track of failed image downloads potentially caused by prnt.sc rate limiting connections
+    private static final int failuresBeforeWarning = 5; // the number of rate limit failures allowed before a warning is printed
     private final String imageID;
     private final String imageUrl;
     private final BufferedImage imageContent;
@@ -109,8 +111,10 @@ final class PrntscImage {
                     }
                 }
             } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                // no need to count potential rate limiting/blocking errors here since they will be counted
+                // in downloadImage()
+
+                //e.printStackTrace();
             }
             return null;
         }
@@ -138,8 +142,22 @@ final class PrntscImage {
                 connection.disconnect();
                 return image;
 
+            } catch (IOException e) {
+                // Keeps track of failed image downloads potentially caused by prnt.sc rate limiting connections and ip blocking
+                // We only count this exception because it is thrown when a HTTP 403 response is received (ip blocking via cloudlfare in action)
+                // Although this exception could be thrown for other reasons, in this use case rate limiting/blocking is the most probable cause
+                rateLimitFailures+=1;
+                if (rateLimitFailures % failuresBeforeWarning == 0) {
+                    System.out.format("WARNING: It appears your ip address may have been blocked by prnt.sc. %d images have failed to download%n", rateLimitFailures);
+                }
+                //e.printStackTrace();
+                if (connection != null) {
+                    connection.disconnect();
+                }
+                return null;
+
+
             } catch (Exception e) {
-                e.printStackTrace();
                 if (connection != null) {
                     connection.disconnect();
                 }
