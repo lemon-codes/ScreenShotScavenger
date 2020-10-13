@@ -6,7 +6,7 @@ import java.awt.image.BufferedImage;
  * provided images in order to improve results so it is recommended that clients provide deep copies
  * of images for processing if they wish to maintain an unaltered copy of the image.
  */
-interface OCREngine {
+public interface OCREngine {
 
     static OCREngine EMPTY_OCR_ENGINE = new OCREngine() {
         @Override

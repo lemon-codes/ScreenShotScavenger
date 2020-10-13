@@ -17,7 +17,7 @@ import java.util.List;
  * Results can be added continuously and all results and
  * details about those results are stored in memory.
  */
-class ResultsManagerCSV implements ResultsManager {
+public class ResultsManagerCSV implements ResultsManager {
     private static final boolean SAVE_IMAGES_TO_DISK = true;
     private static final boolean SAVE_RESULTS_TO_DISK = true;
     private static final boolean STORE_RESULTS_IN_MEMORY = true;  // set to false to reduce memory footprint. printing results will no longer work

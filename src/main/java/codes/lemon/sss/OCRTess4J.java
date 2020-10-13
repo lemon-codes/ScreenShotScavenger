@@ -12,7 +12,7 @@ import java.io.File;
  * This class makes use of a single static instance of the Tesseract Engine. We limit the number
  * of instances to 1 because the engine is greedy with system resources.
  */
-class OCRTess4J implements OCREngine{
+public class OCRTess4J implements OCREngine{
     // tesseract declared as class (static) variable because initialisation & setup
     // are costly and only one instance of the tesseract engine is needed
     private static final Tesseract tesseract = new Tesseract();

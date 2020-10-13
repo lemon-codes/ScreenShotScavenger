@@ -130,7 +130,6 @@ final class PrntscImage {
             HttpsURLConnection connection  = null;
             try {
                 URL url = new URL(imageUrl);
-                assert (url != null);
                 connection = (HttpsURLConnection) url.openConnection();
                 connection.setConnectTimeout(1500);
                 connection.setReadTimeout(10000);
