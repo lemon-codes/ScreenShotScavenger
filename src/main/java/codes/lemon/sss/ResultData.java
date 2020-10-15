@@ -3,10 +3,10 @@ package codes.lemon.sss;
 import java.awt.image.BufferedImage;
 
 /***
- * Stores details about results. Used by the scavenger to communicate with the
- * ResultsManager. The implementation of ResultData is not intended to be modified
- * or replaced, only used by other ResultsManager implementations to receive messages
- * from the scavenger.
+ * Stores details about results. Implementations should be immutable to allow clients
+ * so safely modify data provided by a ResultData instance whilst maintinging the integrity
+ * of the ResultData instance. Used by the scavenger to represent its state and
+ * communicate with the ResultsManager.
  */
 interface ResultData {
 
@@ -31,7 +31,7 @@ interface ResultData {
     String getImageID();
 
     /***
-     * Returns the contents of the image which has been flagged as a result.
+     * Returns a deep copy of contents of the image which has been flagged as a result.
      * The image contents are provided as a BufferedImage
      * @return the image contents of the image contained in this result
      */

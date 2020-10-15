@@ -19,12 +19,12 @@ import codes.lemon.sss.scrapers.*;
  * Additional Hunter modules can be added at run time by the client.
  * Each hunter module performs its own analysis on the next image and the text extracted from that image.
  * A hunter module will report wither it has found anything which indicates the next image contains
- * sensitive info. If any hunter module has success, the image which was analysed becomes the current image
- * loaded in the scavenger. If no hunters report success, then we load the next image for the hunter modules
- * to process next. We use these hunters in this way to allow the client to load the next image we suspect
- * has sensitive info, skipping those which don't.
- *
- *
+ * sensitive info. If no hunters report success, then we load the next image for the hunter modules
+ * to process next. This allows clients to load the next image we suspect has sensitive info, skipping
+ * those which don't. If any hunter module has success, the Scavengers state is updated to contain the
+ * image which was analysed along with details related to the result. Getters can be used to
+ * access result details. The getters in Scavenger returns deep copies of objects making it safe for clients
+ * to modify data obtained from Scavenger instances.
  */
 public class Scavenger {
 
@@ -156,7 +156,9 @@ public class Scavenger {
     private final Queue<ImageData> imageBuffer;
     private final List<Hunter> hunters;
     private boolean scraperIsEmpty = false;
-    private ImageData currentImage;
+    private ResultData currentResult;
+    // TODO: Change currentImage type to ResultData. Modify next image to create ResultData instance if
+    //       hunting disabled. Consider returning ResultData objects rather than providing getters for getCurrentImageID() etc
 
 
     private Scavenger(Builder builder) {
@@ -166,7 +168,6 @@ public class Scavenger {
         ocrEngine = builder.ocrEngine;
         huntingEnabled = builder.huntingEnabled;
         hunters = builder.hunters;
-
         resultsManagerEnabled = builder.resultsManagerEnabled;
         results = builder.resultsManager;
         imageBuffer = new LinkedList<>();
@@ -175,13 +176,14 @@ public class Scavenger {
 
     /***
      * Initialises the buffer for the first time by processing the required number
-     * of images to fill the buffer. Once the buffer is full we load the first
-     * image in the buffer as the current image and then refill the buffer.
+     * of images to fill the buffer. Once the buffer is full we begin the hunting process
+     * to obtain an initial result to ensure the Scavenger has a valid state from initialisation.
+     * If hunting is disabled, the first image in the buffer is treated as the first result.
+     * The buffer is then refilled to ensure the buffer is full before returning control to the client.
      */
     private void initBuffer() {
-        // TODO: use nextImage() to ensure only a hunted image is loaded
         fillBufferWithImages(); // fill the buffer with some initial data
-        loadNextImage();  // load an initial image
+        loadNextImage();  // load an initial result
         fillBufferWithImages(); // replace the image we just removed from the buffer
     }
 
@@ -277,17 +279,18 @@ public class Scavenger {
     }
 
     /***
-     * If hunting is disabled, we set currentImage to next image provided by the scraper.
+     * If hunting is disabled, we set currentResult to next image provided by the scraper.
      * If hunting is enabled, we iterate through images and uses all loaded hunter modules to analyse each image.
      * We stops when a hunter has found something which indicates an image contains
-     * sensitive data. This image then becomes the current image. Getters can be used to
-     * retrieve the details of this image.
+     * sensitive data. This image then becomes the current result. Getters can be used to
+     * retrieve the details of this result.
      */
     public void loadNextImage() {
 
         // if hunting is disabled, images are provided sequentially as the scraper supplies them
         if (!huntingEnabled) {
-            currentImage = getNextImage();  // shutdown down if no image available
+            // create an empty result containing only image details
+            currentResult = new ResultDataImp(getNextImage(), "HUNTING DISABLED", "HUNTING DISABLED");
             return;
         }
 
@@ -303,10 +306,11 @@ public class Scavenger {
                     // a hunter has found something.
                     // save the name of the hunter which has flagged this image as a result
                     String resultAuthor = hunter.getHunterModuleName();
-                    currentImage = imageForAnalysis;  // update current image
                     // store the details of this find in the results manager
-                    ResultData result = new ResultDataImp(currentImage, resultAuthor, resultDetails);
+                    ResultData result = new ResultDataImp(imageForAnalysis, resultAuthor, resultDetails);
                     results.addResult(result);
+                    // update scavenger state
+                    currentResult = result;
                     return; // no need to continue processing images
                 }
             }
@@ -318,15 +322,17 @@ public class Scavenger {
      * @return ID of the current image
      */
     public String getCurrentImageID() {
-        return currentImage.getID();
+        return currentResult.getImageID();
     }
 
     /***
-     * Returns the content of the current image as a BufferedImage
+     * Returns the content of the current image as a BufferedImage.
+     * A deep copy is returned allowing clients to safely modify the returned
+     * image without affecting the integrity of Scacengers copy.
       * @return current image as a BufferedImage
      */
     public BufferedImage getCurrentImage() {
-        return currentImage.getContent();
+        return currentResult.getImageContent();
     }
 
     /***
@@ -335,8 +341,16 @@ public class Scavenger {
      * @return all text visible in the image
      */
     public String getCurrentImageOCRText() {
-        return currentImage.getText();
+        return currentResult.getImageText();
     }
+
+    /***
+     * Returns the ResultData instance. ResultData instances are immutable
+     * making it safe to provide the client direct access to the Scavengers
+     * instance of ResultData.
+     * @return ResUltData instance containing details of the most recent result
+     */
+    public ResultData getCurrentResultData() { return currentResult; }
 
     /***
      * Add a hunter module to the scavenger. This module will

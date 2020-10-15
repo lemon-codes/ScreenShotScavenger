@@ -3,12 +3,12 @@ package codes.lemon.sss;
 import java.awt.image.BufferedImage;
 
 /***
- * This class acts as wrapper for the ImageData class. It is intended to be used when a Hunter
- * module flags an image. This class stores the original ImageData object plus additional
- * result data related to the image, such as the Author of the result (the name of the Hunter module
- * which flagged the image) and any additional result details supplied by the flagging hunter module.
- * This class provides accessors to all data contained in the supplied ImageData object, as well as the
- * result author and additional result details.
+ * An immutable class acts as wrapper for the ImageData class (also immutable).
+ * It is intended to be used when a Hunter module flags an image. This class stores the original
+ * ImageData object plus additional result data related to the image, such as the Author of the result
+ * (the name of the Hunter module which flagged the image) and any additional result details supplied
+ * by the flagging hunter module. This class provides accessors to all data contained in the supplied
+ * ImageData object, as well as the result author and additional result details.
  *
  * TODO: Consider refactoring ResultData to extend ImageData rather than acting as a wrapper
  *

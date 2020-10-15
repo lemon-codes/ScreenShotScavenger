@@ -113,7 +113,6 @@ final class PrntscImage {
             } catch (IOException e) {
                 // no need to count potential rate limiting/blocking errors here since they will be counted
                 // in downloadImage()
-
                 //e.printStackTrace();
             }
             return null;

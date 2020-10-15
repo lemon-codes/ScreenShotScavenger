@@ -3,12 +3,12 @@ package codes.lemon.sss.hunters;
 import java.awt.image.BufferedImage;
 
 /***
- * Abstract class implementing base functionality for Hunter plugins.
- * Hunter plugins will analyse either the image,
+ * Hunter instances will analyse either the image,
  * the extracted text, or both; in order to determine if the image contains
  * some form of sensitive data, eg passwords, encryption keys, cc data.
- * This abstract class gives all subclasses access to the image and text
- * they require.
+ * Implementations must provide a unique name for identification.
+ * It is the responsibility of any implementation authors to decide which data
+ * is relevant to return after a successful hunt.
  */
 public interface Hunter {
 

@@ -1,5 +1,7 @@
 package codes.lemon.sss;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
 import java.util.Objects;
 
 /***
@@ -18,7 +20,11 @@ final class ImageData {
     private final String imageText;
 
     /***
-     * Stores data related to an individual image. Null values should never be supplied.
+     * An immutable class which stores data related to an individual image. This class
+     * returns a deep copy of its containing image to ensure its immutability.
+     * This allows clients to make alterations to the returned image while maintaining
+     * the integrity of the ImageData instance.
+     * Null values should never be supplied.
      * @param imageID an identifier for the image
      * @param imageContent the content of the image accessible as a BufferedImage
      * @param imageText text which has been extracted from the image using OCR
@@ -40,11 +46,7 @@ final class ImageData {
      */
     public String getID() { return imageID; }
 
-    /***
-     * Provides access to the contents of the image as a BufferedImage
-     * @return the contents of the image as a BufferedImage
-     */
-    public BufferedImage getContent() { return imageContent; }
+
 
     /***
      * Returns the text which has previously been extracted from the image using
@@ -52,6 +54,32 @@ final class ImageData {
      * @return text contained in the image
      */
     public String getText() { return imageText; }
+
+
+    /***
+     * Provides access to the contents of the image as a BufferedImage.
+     * A deep copy is returned allowing clients to make alterations
+     * to the returned image while maintaining the integrity of the
+     * ImageData instance.
+     * @return the contents of the image as a BufferedImage
+     */
+    public BufferedImage getContent() { return getDeepCopyOfImage(imageContent); }
+
+
+    /***
+     * Returns a deep copy of a BufferedImage. A deep copy is useful when we want to make alterations to a
+     * BufferedImage while maintaining an unmodified copy of the original.
+     * @param originalImage the image to be copied
+     * @return a deep copy (value copy) of originalImage
+     */
+    private BufferedImage getDeepCopyOfImage(BufferedImage originalImage) {
+        // should never happen since null checks are performed when images are loaded from Scraper
+        assert (originalImage != null) : "null passed to getDeepCopyOfImage";
+        ColorModel cm = originalImage.getColorModel();
+        boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+        WritableRaster raster = originalImage.copyData(null);
+        return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
+    }
 
 
 
