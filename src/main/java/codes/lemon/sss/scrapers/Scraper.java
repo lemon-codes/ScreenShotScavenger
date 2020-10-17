@@ -16,7 +16,7 @@ public interface Scraper {
      * If the scraper cannot do so instantly then it must work/wait until it can.
      * If the scraper will not be able to provide any more images then it must throw
      * a NoImageAvailableException to notify the client.
-     *
+     * @throws NoImageAvailableException if a next image cannot be loaded
      */
     void nextImage() throws NoImageAvailableException;
 

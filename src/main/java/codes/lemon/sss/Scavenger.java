@@ -188,11 +188,9 @@ public class Scavenger {
     }
 
     /***
-     * If the buffer is not currently full we process more images
-     * and fill it. Validity checks are carried out to ensure
-     * only valid images with IDs are put in the buffer.
-     * If the scraper runs out of images, we do not attempt to obtain
-     * any more images from it.
+     * Fills the buffer with newly processed images (unless the buffer is already full).
+     * Validity checks are carried out to ensure only valid images with IDs are put in the buffer.
+     * If the scraper runs out of images, we do not attempt to obtainany more images from it.
      */
     private void fillBufferWithImages() {
         // check if scraper has already been marked empty before attempting to obtain images from it
@@ -326,9 +324,9 @@ public class Scavenger {
     }
 
     /***
-     * Returns the content of the current image as a BufferedImage.
+     * Returns the content of the current result image as a BufferedImage.
      * A deep copy is returned allowing clients to safely modify the returned
-     * image without affecting the integrity of Scacengers copy.
+     * image without affecting the integrity of Scavengers copy.
       * @return current image as a BufferedImage
      */
     public BufferedImage getCurrentImage() {
@@ -357,14 +355,17 @@ public class Scavenger {
      * be used to analyse any future images for indicators of sensitive
      * data
      * @param hunter a hunter module. Must not be null
+     * @param <T> The type of Hunter. Can be subclasses of Hunter implementations.
      */
     public <T extends Hunter> void addHunter(T hunter) {
         hunters.add(Objects.requireNonNull(hunter));
     }
 
+
     /***
      * Removes a hunter module from the scavenger. Comparison is based on class name.
      * @param hunter a hunter module already loaded in the scavenger
+     * @param <T> The type of Hunter. Can be subclasses of Hunter implementations.
      * @return true if the hunter module was successfully removed,
      *          false if the hunter module is not currently loaded
      *          and therefore cannot be removed.

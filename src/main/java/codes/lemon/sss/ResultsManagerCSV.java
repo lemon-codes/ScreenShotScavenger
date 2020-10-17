@@ -1,7 +1,5 @@
 package codes.lemon.sss;
 
-// TODO: interface, csv output
-
 import com.opencsv.CSVWriter;
 
 import javax.imageio.ImageIO;
@@ -14,9 +12,11 @@ import java.util.List;
 
 /***
  * A results manager which accepts one result at a time.
- * Results can be added continuously and all results and
- * details about those results are stored in memory.
- */
+ * Results can be added continuously and all results and details about those
+ * results are stored in memory and on disk by default. A copy of each image
+ * is saved to disk as a png file. Details of each result are written to a CSV file.
+ *
+ * */
 public class ResultsManagerCSV implements ResultsManager {
     private static final boolean SAVE_IMAGES_TO_DISK = true;
     private static final boolean SAVE_RESULTS_TO_DISK = true;
