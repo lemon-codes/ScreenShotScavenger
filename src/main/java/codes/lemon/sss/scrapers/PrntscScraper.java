@@ -31,13 +31,27 @@ public class PrntscScraper implements Scraper{
     private final PrntscCodeGenerator codeGenerator;
     private PrntscImage currentImage;
 
-
+    // default constructor
     public PrntscScraper() {
         pool = Executors.newFixedThreadPool(THREADS);
         // LinkedBlockingQueue was chosen because it blocks on read when the queue is empty.
         // Eliminating the need for synchronization
         imageBuffer = new LinkedBlockingQueue<PrntscImage>();
-        codeGenerator = new PrntscCodeGenerator(BASE_IMAGE_ID);
+        codeGenerator = new PrntscCodeGenerator();
+        initBuffer();
+    }
+
+    /**
+     * Constructs a PrntscScraper instance whose state upon initialisation will contain details of
+     * the prntsc image that corresponds to baseImageID. This baseImageID is incremented to provide
+     * subsequent images.
+     * @param baseImageID a valid prntsc image ID which will be incremented to identify subsequent images
+     */
+    public PrntscScraper(String baseImageID) {
+        // cannot call this() because codeGenerator is assigned and used within parameterless constructor
+        pool = Executors.newFixedThreadPool(THREADS);
+        imageBuffer = new LinkedBlockingQueue<PrntscImage>();
+        codeGenerator = new PrntscCodeGenerator(baseImageID);
         initBuffer();
     }
 

@@ -1,12 +1,14 @@
 package codes.lemon.sss;
 
 import codes.lemon.sss.scrapers.DiskScraper;
+import codes.lemon.sss.scrapers.PrntscScraper;
 
 public class ExampleUsage {
     private final Scavenger scavenger;
 
     public ExampleUsage() {
         scavenger = new Scavenger.Builder().build();
+        //scavenger = new Scavenger.Builder().setScraper(new PrntscScraper("aaaaaa")).build();
         //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).build();
         //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).enableResultsManager(false).build();
     }
