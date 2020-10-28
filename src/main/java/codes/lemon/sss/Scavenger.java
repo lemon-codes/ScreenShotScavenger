@@ -157,9 +157,7 @@ public class Scavenger {
     private final List<Hunter> hunters;
     private boolean scraperIsEmpty = false;
     private ResultData currentResult;
-    // TODO: Change currentImage type to ResultData. Modify next image to create ResultData instance if
-    //       hunting disabled. Consider returning ResultData objects rather than providing getters for getCurrentImageID() etc
-
+    private ResultData nextResult;
 
     private Scavenger(Builder builder) {
         bufferSize = builder.bufferSize;
@@ -171,7 +169,7 @@ public class Scavenger {
         resultsManagerEnabled = builder.resultsManagerEnabled;
         results = builder.resultsManager;
         imageBuffer = new LinkedList<>();
-        initBuffer();
+        initBuffer(); // sets currentResult
     }
 
     /***
@@ -183,8 +181,9 @@ public class Scavenger {
      */
     private void initBuffer() {
         fillBufferWithImages(); // fill the buffer with some initial data
-        loadNextImage();  // load an initial result
-        fillBufferWithImages(); // replace the image we just removed from the buffer
+        preloadNextResult(); // find an initial result
+        loadNextResult(); // load details of the first result to ensure scavenger is initialised with a valid state
+        fillBufferWithImages(); // replace the images we just removed from the buffer
     }
 
     /***
@@ -258,63 +257,105 @@ public class Scavenger {
 
     /***
      * Returns the next image in the order the scraper has provided them in.
-     * If there is no next image available we stop execution.
-     * @return next image from scraper, else shutdown if none available
+     * If there is no next image available we return null.
+     * Attempts to refill buffer on each call.
+     * @return next image from scraper, else null if none available
      */
     private ImageData getNextImage() {
+        ImageData nextImage = null;
         if (imageBuffer.size() > 0) {
-            ImageData nextImage = imageBuffer.poll();
-            fillBufferWithImages();  // ensures buffer does not become empty
-            return nextImage;
+            nextImage = imageBuffer.poll();
+            fillBufferWithImages();
         }
-        else {
-            // TODO: Fix this monstrosity
-            System.out.println("We have ran out of images to process." +
-                                "The scraper in use has indicated it cannot provide any more images.");
-            System.out.println("We will print out the results and finish up now!");
-            printResultsAndExit();
-            return null; // will never be reached
-        }
+        return nextImage;
     }
 
     /***
-     * If hunting is disabled, we set currentResult to next image provided by the scraper.
+     * Preloads a result, allowing clients to use hasNextResult() to confirm that a
+     * call to loadNextResult() will be successful. This makes Scavengers behaviour more
+     * deterministic.
+     * If hunting is disabled, we set nextResult to the next image provided by the scraper.
      * If hunting is enabled, we iterate through images and uses all loaded hunter modules to analyse each image.
      * We stops when a hunter has found something which indicates an image contains
-     * sensitive data. This image then becomes the current result. Getters can be used to
-     * retrieve the details of this result.
+     * sensitive data. This image will now be used as the next result.
      */
-    public void loadNextImage() {
-
+    private void preloadNextResult() {
         // if hunting is disabled, images are provided sequentially as the scraper supplies them
         if (!huntingEnabled) {
+            ImageData nextImage = getNextImage();
+            if (nextImage == null) {
+                // buffer is empty which means scraper is exhausted. Cannot load another result
+                return;
+            }
+
             // create an empty result containing only image details
-            currentResult = new ResultDataImp(getNextImage(), "HUNTING DISABLED", "HUNTING DISABLED");
+            nextResult = new ResultDataImp(getNextImage(), "HUNTING DISABLED", "HUNTING DISABLED");
             return;
         }
 
         // hunting is enabled, so iterate through images until a hunter flags one
         while (true) {
             ImageData imageForAnalysis = getNextImage(); // shuts down if no next image
-            assert imageForAnalysis != null : "null image supplied to Scavenger";
+            if (imageForAnalysis == null) {
+                // buffer is empty which means scraper is exhausted. Cannot load another result
+                return;
+            }
             // allow all hunters to analyse the image. Stop if a hunter finds something
             for (Hunter hunter : hunters) {
                 //returns null if nothing found
                 String resultDetails = hunter.hunt(imageForAnalysis.getID(), imageForAnalysis.getContent(), imageForAnalysis.getText());
                 if (resultDetails != null) {
-                    // a hunter has found something.
-                    // save the name of the hunter which has flagged this image as a result
+                    // a hunter has found something. Store details of this find as a ResultData instance
                     String resultAuthor = hunter.getHunterModuleName();
-                    // store the details of this find in the results manager
                     ResultData result = new ResultDataImp(imageForAnalysis, resultAuthor, resultDetails);
-                    results.addResult(result);
-                    // update scavenger state
-                    currentResult = result;
+                    // update scavenger state.
+                    nextResult = result;
                     return; // no need to continue processing images
                 }
             }
         }
     }
+
+
+
+    /***
+     * A state-testing method. Indicates that the next result is ready to be
+     * loaded. This allows clients to test if a call to <i>loadNextResult()</i>
+     * will succeed.
+     * @return true if it is safe to call <i>loadNextResult()</i>. False if Scavenger
+     *          is unable to load any more results.
+     */
+    public boolean hasNextResult() {
+        return (nextResult != null ? true : false);
+    }
+
+
+    /***
+     *  Updates Scavengers state to contain details of the next result. Getters can be used to query for details.
+     *  If hunting is disabled, we consider the next image provided by the scraper to be the current result.
+     *  If hunting is enabled, we consider the next image flagged by a Hunter to be the current result.
+     *  Details of the new current result are passed to the Results Manager.
+     *  Initiates the preloading of the next result.
+     *  hasNextImage() is a state-checking method which is to be used to ensure successful calls
+     *  to this method.
+     *  @Throws IllegalStateException if the Scavenger is unable to load a result.
+
+     */
+    public void loadNextResult() {
+        if (nextResult == null) {
+            throw new IllegalStateException("Scavenger is unable to load a result");
+        }
+
+        // update state and log result
+        currentResult = nextResult;
+        results.addResult(currentResult);
+
+        // mark nextResult as empty and attempt to preload next result
+        nextResult = null;
+        preloadNextResult();
+    }
+
+
 
     /***
      * Returns an identifier for the image currently loaded

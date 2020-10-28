@@ -19,8 +19,8 @@ public class ExampleUsage {
      */
     public void run() {
         int imagesFound = 0;
-        while (imagesFound<50) {
-            scavenger.loadNextImage();
+        while (imagesFound < 50 && scavenger.hasNextResult()) {
+            scavenger.loadNextResult();
             imagesFound++;
             System.out.printf("Flagged image with ID: %s\tTotal images flagged: %d%n", scavenger.getCurrentImageID(), imagesFound);
         }
