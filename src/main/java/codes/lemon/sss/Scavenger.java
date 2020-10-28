@@ -268,6 +268,7 @@ public class Scavenger {
             return nextImage;
         }
         else {
+            // TODO: Fix this monstrosity
             System.out.println("We have ran out of images to process." +
                                 "The scraper in use has indicated it cannot provide any more images.");
             System.out.println("We will print out the results and finish up now!");
