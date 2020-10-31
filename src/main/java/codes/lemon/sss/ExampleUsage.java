@@ -10,10 +10,10 @@ public class ExampleUsage {
     private final Scavenger scavenger;
 
     public ExampleUsage() {
-        //scavenger = new Scavenger.Builder().build();
+        scavenger = new Scavenger.Builder().build();
 
         //scavenger = new Scavenger.Builder().setScraper(new PrntscScraper("aaaaaa")).build();
-        scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).enableHunting(false).build();
+        //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).build();
         //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).enableResultsManager(false).build();
     }
     /***
@@ -23,7 +23,7 @@ public class ExampleUsage {
     public void run() {
         int imagesFound = 0;
         Instant start = Instant.now();
-        while (imagesFound < 500) {
+        while (imagesFound < 50) {
             while (scavenger.hasNextResult()) {
                 scavenger.loadNextResult();
                 imagesFound++;
