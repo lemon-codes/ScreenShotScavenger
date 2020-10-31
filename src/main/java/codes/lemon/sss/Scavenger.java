@@ -1,8 +1,11 @@
 package codes.lemon.sss;
-import java.awt.image.ColorModel;
-import java.awt.image.WritableRaster;
 import java.util.*;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import codes.lemon.sss.hunters.*;
 import codes.lemon.sss.scrapers.*;
 
@@ -101,19 +104,19 @@ public class Scavenger {
         }
 
 
+        /**
+         * Releases resources if they will not be used. "Empty" implementations which
+         * do nothing are provided allowing the original implementation to be garbage collected.
+         * The use of "empty" implementations prevents Scavenger code being littered with null checks
+         * wherever a potentially unused resource is accessed.
+         */
         private void releaseUnusedResources() {
-            // allow ocrEngine to be garbage collected if OCR is disabled
             ocrEngine = ocrEnabled ? ocrEngine : OCREngine.EMPTY_OCR_ENGINE;
+            resultsManager = resultsManagerEnabled ? resultsManager : ResultsManager.EMPTY_RESULT_MANAGER;
 
-            // Allow Hunter instances to be garbage collected if hunting disabled
-            // Empty list returned rather than null to prevent null checks littering code
-            hunters = huntingEnabled ? hunters : Collections.EMPTY_LIST;
-
-            // If resultsManager is disabled, replace results manager with one which discards all results.
-            // This allows the original resultsManager resources to be garbage collected,
-            if (!resultsManagerEnabled) {
-                // EMPTY_RESULT_MANAGER is used rather than null to prevent Scavenger code being littered with null checks.
-                resultsManager = ResultsManager.EMPTY_RESULT_MANAGER;
+            if (!huntingEnabled) {
+                hunters = new ArrayList<>();
+                hunters.add(Hunter.EMPTY_HUNTER);  // flags every image which simulates hunting being disabled
             }
         }
 
@@ -146,176 +149,38 @@ public class Scavenger {
         }
     }
 
-    private final Scraper scraper;
-    private final OCREngine ocrEngine;
-    private final ResultsManager results;
-    private final int bufferSize;
-    private final boolean ocrEnabled;
-    private final boolean huntingEnabled;
-    private final boolean resultsManagerEnabled;
-    private final Queue<ImageData> imageBuffer;
-    private final List<Hunter> hunters;
-    private boolean scraperIsEmpty = false;
+    private final ResultsManager resultsManager;
+    private final ExecutorService imageBufferExecutor;
+    private final ExecutorService huntingExecutor;
+    private final BlockingQueue<ResultData> resultBuffer;
     private ResultData currentResult;
-    private ResultData nextResult;
 
     private Scavenger(Builder builder) {
-        bufferSize = builder.bufferSize;
-        scraper = builder.scraper;
-        ocrEnabled = builder.ocrEnabled;
-        ocrEngine = builder.ocrEngine;
-        huntingEnabled = builder.huntingEnabled;
-        hunters = builder.hunters;
-        resultsManagerEnabled = builder.resultsManagerEnabled;
-        results = builder.resultsManager;
-        imageBuffer = new LinkedList<>();
-        initBuffer(); // sets currentResult
+        imageBufferExecutor = Executors.newSingleThreadExecutor();
+        BlockingQueue<ImageData> imageBuffer = new LinkedBlockingQueue<>();
+        imageBufferExecutor.submit(new ImageDataBufferTask(builder.bufferSize, builder.scraper, builder.ocrEngine, imageBuffer));
+
+        huntingExecutor = Executors.newSingleThreadExecutor();
+        resultBuffer = new LinkedBlockingQueue<>();
+        huntingExecutor.submit(new HuntingTask(imageBuffer, builder.hunters, resultBuffer));
+
+        resultsManager = builder.resultsManager;
+        loadInitialResult(); // sets currentResult
     }
 
-    /***
-     * Initialises the buffer for the first time by processing the required number
-     * of images to fill the buffer. Once the buffer is full we begin the hunting process
-     * to obtain an initial result to ensure the Scavenger has a valid state from initialisation.
-     * If hunting is disabled, the first image in the buffer is treated as the first result.
-     * The buffer is then refilled to ensure the buffer is full before returning control to the client.
+    /**
+     * Blocks until an initial result is available to represent the scavengers state.
+     * This ensures that the Scavenger has a valid state upon initialisation.
      */
-    private void initBuffer() {
-        fillBufferWithImages(); // fill the buffer with some initial data
-        preloadNextResult(); // find an initial result
-        loadNextResult(); // load details of the first result to ensure scavenger is initialised with a valid state
-        fillBufferWithImages(); // replace the images we just removed from the buffer
-    }
-
-    /***
-     * Fills the buffer with newly processed images (unless the buffer is already full).
-     * Validity checks are carried out to ensure only valid images with IDs are put in the buffer.
-     * If the scraper runs out of images, we do not attempt to obtainany more images from it.
-     */
-    private void fillBufferWithImages() {
-        // check if scraper has already been marked empty before attempting to obtain images from it
-        if (scraperIsEmpty) {
-            return;
-        }
-
-        assert(imageBuffer != null) : "image collection in Scavenger == null";
-        while (imageBuffer.size() < bufferSize) {
-            String id = Objects.requireNonNull(scraper.getImageID());
-            BufferedImage img = Objects.requireNonNull(scraper.getImageContent());
-            String text = Objects.requireNonNull(getTextFromImageUsingOCR(img));
-
-            ImageData image = new ImageData(id, img, text);
-            imageBuffer.add(image);
-
-            try {
-                scraper.nextImage(); // load next image in scraper for future use
-            } catch (NoImageAvailableException e) {
-                // the scraper has ran out of images so mark it as empty
-                scraperIsEmpty = true;
-            }
+    private void loadInitialResult() {
+        try {
+            // blocks until a result is available
+            currentResult = resultBuffer.take();
+            resultsManager.addResult(currentResult);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
-
-    /***
-     * Extracts text from an image using Ocular Character Recognition.
-     * If OCR has been disabled we return a string notifying any clients
-     * that OCR has been disabled.
-     * If no text is present in the image or an error occurs when performing OCR,
-     * an empty string is returned instead.
-     * @param image the image to be analysed as a BufferedImage
-     * @return returns the text extracted from image
-     */
-    private String getTextFromImageUsingOCR(BufferedImage image) {
-        String imageText;
-        if (ocrEnabled) {
-            // a deep copy of the image is passed to OCR Engine to allow the OCR engine to
-            // alter the image if necessary to improve results.
-            imageText = ocrEngine.getText(getDeepCopyOfImage(image)); // returns empty string ("") if no text
-        }
-        else {
-            imageText = "NOTICE: OCR HAS BEEN DISABLED. PLEASE RE-ENABLE OCR IN SCAVENGER IF YOU WISH TO PERFORM TEXTUAL ANALYSIS";
-        }
-        assert (imageText != null) : "image text should not be null";
-        return imageText;
-    }
-
-    /***
-     * Returns a deep copy of a BufferedImage. A deep copy is useful when we want to make alterations to a
-     * BufferedImage while maintaining an unmodified copy of the original.
-     * @param originalImage the image to be copied
-     * @return a deep copy (value copy) of originalImage
-     */
-    private BufferedImage getDeepCopyOfImage(BufferedImage originalImage) {
-        // should never happen since null checks are performed when images are loaded from Scraper
-        assert (originalImage != null) : "null passed to getDeepCopyOfImage";
-        ColorModel cm = originalImage.getColorModel();
-        boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
-        WritableRaster raster = originalImage.copyData(null);
-        return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
-    }
-
-
-
-    /***
-     * Returns the next image in the order the scraper has provided them in.
-     * If there is no next image available we return null.
-     * Attempts to refill buffer on each call.
-     * @return next image from scraper, else null if none available
-     */
-    private ImageData getNextImage() {
-        ImageData nextImage = null;
-        if (imageBuffer.size() > 0) {
-            nextImage = imageBuffer.poll();
-            fillBufferWithImages();
-        }
-        return nextImage;
-    }
-
-    /***
-     * Preloads a result, allowing clients to use hasNextResult() to confirm that a
-     * call to loadNextResult() will be successful. This makes Scavengers behaviour more
-     * deterministic.
-     * If hunting is disabled, we set nextResult to the next image provided by the scraper.
-     * If hunting is enabled, we iterate through images and uses all loaded hunter modules to analyse each image.
-     * We stops when a hunter has found something which indicates an image contains
-     * sensitive data. This image will now be used as the next result.
-     */
-    private void preloadNextResult() {
-        // if hunting is disabled, images are provided sequentially as the scraper supplies them
-        if (!huntingEnabled) {
-            ImageData nextImage = getNextImage();
-            if (nextImage == null) {
-                // buffer is empty which means scraper is exhausted. Cannot load another result
-                return;
-            }
-
-            // create an empty result containing only image details
-            nextResult = new ResultDataImp(getNextImage(), "HUNTING DISABLED", "HUNTING DISABLED");
-            return;
-        }
-
-        // hunting is enabled, so iterate through images until a hunter flags one
-        while (true) {
-            ImageData imageForAnalysis = getNextImage(); // shuts down if no next image
-            if (imageForAnalysis == null) {
-                // buffer is empty which means scraper is exhausted. Cannot load another result
-                return;
-            }
-            // allow all hunters to analyse the image. Stop if a hunter finds something
-            for (Hunter hunter : hunters) {
-                //returns null if nothing found
-                String resultDetails = hunter.hunt(imageForAnalysis.getID(), imageForAnalysis.getContent(), imageForAnalysis.getText());
-                if (resultDetails != null) {
-                    // a hunter has found something. Store details of this find as a ResultData instance
-                    String resultAuthor = hunter.getHunterModuleName();
-                    ResultData result = new ResultDataImp(imageForAnalysis, resultAuthor, resultDetails);
-                    // update scavenger state.
-                    nextResult = result;
-                    return; // no need to continue processing images
-                }
-            }
-        }
-    }
-
 
 
     /***
@@ -326,7 +191,7 @@ public class Scavenger {
      *          is unable to load any more results.
      */
     public boolean hasNextResult() {
-        return (nextResult != null ? true : false);
+        return (resultBuffer.size() > 0 ? true : false);
     }
 
 
@@ -335,24 +200,19 @@ public class Scavenger {
      *  If hunting is disabled, we consider the next image provided by the scraper to be the current result.
      *  If hunting is enabled, we consider the next image flagged by a Hunter to be the current result.
      *  Details of the new current result are passed to the Results Manager.
-     *  Initiates the preloading of the next result.
      *  hasNextImage() is a state-checking method which is to be used to ensure successful calls
      *  to this method.
      *  @Throws IllegalStateException if the Scavenger is unable to load a result.
 
      */
     public void loadNextResult() {
-        if (nextResult == null) {
-            throw new IllegalStateException("Scavenger is unable to load a result");
+        try {
+            currentResult = resultBuffer.remove();
+            resultsManager.addResult(currentResult);
+        } catch (NoSuchElementException e) {
+            throw new IllegalStateException();
         }
 
-        // update state and log result
-        currentResult = nextResult;
-        results.addResult(currentResult);
-
-        // mark nextResult as empty and attempt to preload next result
-        nextResult = null;
-        preloadNextResult();
     }
 
 
@@ -392,58 +252,30 @@ public class Scavenger {
      */
     public ResultData getCurrentResultData() { return currentResult; }
 
-    /***
-     * Add a hunter module to the scavenger. This module will
-     * be used to analyse any future images for indicators of sensitive
-     * data
-     * @param hunter a hunter module. Must not be null
-     * @param <T> The type of Hunter. Can be subclasses of Hunter implementations.
+
+    /**
+     * Prints results that have been logged since initialisation.
      */
-    public <T extends Hunter> void addHunter(T hunter) {
-        hunters.add(Objects.requireNonNull(hunter));
+    public void printResults() {
+        resultsManager.printResults();
     }
 
-
-    /***
-     * Removes a hunter module from the scavenger. Comparison is based on class name.
-     * @param hunter a hunter module already loaded in the scavenger
-     * @param <T> The type of Hunter. Can be subclasses of Hunter implementations.
-     * @return true if the hunter module was successfully removed,
-     *          false if the hunter module is not currently loaded
-     *          and therefore cannot be removed.
-     */
-    public <T extends Hunter> boolean removeHunter(T hunter) {
-        // TODO: offer base class for Hunters to extend. Base class will implement equals() and
-        //       hashcode(). All Hunter implementations will extend base class. List.contains()
-        //       uses objects equals() equals method to compare elements. By overriding equals(),
-        //       we can ensure hunters are compared using their unique name field. This will allow
-        //       hunters.contains(Hunter h) to be used to remove modules with same unique name as h.
-        final Hunter target = Objects.requireNonNull(hunter);
-
-        for (Hunter candidate : hunters) {
-            // comparison is based on class name
-            if (candidate.getClass().equals(target.getClass())) {
-                hunters.remove(candidate);
-                return true;
-            }
-        }
-        return false;
-    }
 
     /***
      * Prints results before cleaning up and exiting.
      */
     public void printResultsAndExit() {
-        results.printResults();
-        results.exit();
-        System.exit(0);
+        resultsManager.printResults();
+        resultsManager.exit();
+        imageBufferExecutor.shutdownNow();
+        huntingExecutor.shutdownNow();
     }
 
     /***
      * Cleans up and exits
      */
     public void exit() {
-        results.exit();
+        resultsManager.exit();
         System.exit(0);
     }
 }

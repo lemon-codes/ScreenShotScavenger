@@ -1,5 +1,7 @@
 package codes.lemon.sss.hunters;
 
+import codes.lemon.sss.OCREngine;
+
 import java.awt.image.BufferedImage;
 
 /***
@@ -11,6 +13,20 @@ import java.awt.image.BufferedImage;
  * is relevant to return after a successful hunt.
  */
 public interface Hunter {
+
+    /**
+     * An empty Hunter which flags every image. Allows Scavenger to operate as a Scraper.
+     */
+    static Hunter EMPTY_HUNTER = new Hunter() {
+        @Override
+        public String hunt(String imageID, BufferedImage content, String OCRText) {
+            return "HUNTING DISABLED";
+        }
+        @Override
+        public String getHunterModuleName() {
+            return "HUNTING DISABLED";
+        }
+    };
 
     /***
      * Analyse the image and/or text to find an indication of sensitive data.
