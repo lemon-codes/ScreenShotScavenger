@@ -191,7 +191,7 @@ public class Scavenger {
      *          is unable to load any more results.
      */
     public boolean hasNextResult() {
-        return (resultBuffer.size() > 0 ? true : false);
+        return (resultBuffer.size() > 0);
     }
 
 
@@ -218,10 +218,10 @@ public class Scavenger {
 
 
     /***
-     * Returns an identifier for the image currently loaded
+     * Returns an identifier for the result image currently loaded
      * @return ID of the current image
      */
-    public String getCurrentImageID() {
+    public String getResultImageID() {
         return currentResult.getImageID();
     }
 
@@ -236,12 +236,30 @@ public class Scavenger {
     }
 
     /***
-     * Returns the text which has been extracted from the image using
-     * an OCR engine
+     * Returns the text which has been extracted (using OCR) from the image contained
+     * in the current result
      * @return all text visible in the image
      */
-    public String getCurrentImageOCRText() {
+    public String getResultImageText() {
         return currentResult.getImageText();
+    }
+
+    /**
+     * Returns the name of the Hunter which found and authored the current
+     * result.
+     * @return the name of the Hunter module that flagged the current result
+     */
+    public String getResultAuthorName() {
+        return currentResult.getAuthor();
+    }
+
+    /**
+     * Returns a comment provided by the Hunter which flagged this result.
+     * This comment details why the image was flagged as a result.
+     * @return a comment detailing why the image was flagged as a result
+     */
+    public String getResultComment() {
+        return currentResult.getDetails();
     }
 
     /***
@@ -250,7 +268,7 @@ public class Scavenger {
      * instance of ResultData.
      * @return ResUltData instance containing details of the most recent result
      */
-    public ResultData getCurrentResultData() { return currentResult; }
+    public ResultData getResultData() { return currentResult; }
 
 
     /**
@@ -265,10 +283,8 @@ public class Scavenger {
      * Prints results before cleaning up and exiting.
      */
     public void printResultsAndExit() {
-        resultsManager.printResults();
-        resultsManager.exit();
-        imageBufferExecutor.shutdownNow();
-        huntingExecutor.shutdownNow();
+        printResults();
+        exit();
     }
 
     /***
@@ -276,7 +292,8 @@ public class Scavenger {
      */
     public void exit() {
         resultsManager.exit();
-        System.exit(0);
+        imageBufferExecutor.shutdownNow();
+        huntingExecutor.shutdownNow();
     }
 }
 

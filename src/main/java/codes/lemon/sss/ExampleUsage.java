@@ -1,8 +1,5 @@
 package codes.lemon.sss;
 
-import codes.lemon.sss.scrapers.DiskScraper;
-import codes.lemon.sss.scrapers.PrntscScraper;
-
 import java.time.Duration;
 import java.time.Instant;
 
@@ -27,7 +24,7 @@ public class ExampleUsage {
             while (scavenger.hasNextResult()) {
                 scavenger.loadNextResult();
                 imagesFound++;
-                System.out.printf("Flagged image with ID: %s\tTotal images flagged: %d%n", scavenger.getCurrentImageID(), imagesFound);
+                System.out.printf("Flagged image with ID: %s\tTotal images flagged: %d%n", scavenger.getResultImageID(), imagesFound);
             }
         }
         Instant end = Instant.now();
