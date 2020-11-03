@@ -86,13 +86,14 @@ allows for certain functionality to be disabled when not required. In cases wher
 functionality is enabled but no custom implementation has been supplied, default 
 implementations will be used. Default implementations are initialised just in time when 
 build() is called. This allows us to initialise only the default implementations needed at 
-run time and to free resources which will not be used.
+run time and to free resources which will not be used. Image and result buffer sizes can also
+be set. 
 
     // Create instance with all functionality enabled and default implementations used <br />
     Scavenger scavenger = new Scavenger.Builder().build();  
     
-    // Create instance with custom scraper. Hunting and report manager disabled.
-    Scavenger scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).enableHunting(false).enableReportsManager(false).build();
+    // Create instance with custom scraper and image buffer size. Hunting and report manager disabled.
+    Scavenger scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).setImageBufferSize(8).enableHunting(false).enableReportsManager(false).build();
 
 See Builder documentation for a full list of customisations available. All methods which 
 accept custom components use upper bound wildcards to allow subclasses of implementations 
