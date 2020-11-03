@@ -24,7 +24,6 @@ public class PrntscScraper implements Scraper{
     private static final int MIN_IMAGES_IN_BUFFER = 24; // 24
     private static final int THREADS = 2;
     private static final int BATCH_DOWNLOAD_SIZE = 12; // 12
-    private static final String BASE_IMAGE_ID = "n6xzas";   // change to alter starting image
 
     private final ExecutorService pool;
     private final BlockingQueue<PrntscImage> imageBuffer;

@@ -230,16 +230,21 @@ public class Scavenger {
     private ResultData currentResult;
 
     private Scavenger(Builder builder) {
+        // start a task in a background thread to obtain images from the Scraper
+        // and perform OCR before placing image data in a buffer
         imageBufferExecutor = Executors.newSingleThreadExecutor();
         BlockingQueue<ImageData> imageBuffer = new LinkedBlockingQueue<>();
         imageBufferExecutor.submit(new ImageDataBufferTask(builder.scraper, builder.ocrEngine, builder.imageBufferSize, imageBuffer));
 
+        // start a task in a background thread which takes ImageData instances from the buffer
+        // and allows hunters to analyse them. This allows us to maintain a buffer of results
+        // to drastically reduce client wait times
         huntingExecutor = Executors.newSingleThreadExecutor();
         resultBuffer = new LinkedBlockingQueue<>();
         huntingExecutor.submit(new HuntingTask(imageBuffer, builder.hunters, builder.resultBufferSize, resultBuffer));
 
         resultsManager = builder.resultsManager;
-        loadInitialResult(); // sets currentResult
+        loadInitialResult(); // sets currentResult. Ensures valid state upon initialisation
     }
 
     /**
