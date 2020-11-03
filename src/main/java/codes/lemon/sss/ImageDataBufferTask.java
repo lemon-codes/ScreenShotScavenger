@@ -29,16 +29,17 @@ class ImageDataBufferTask implements Runnable {
 
     /***
      *
-     * @param bufferSize maximum number of elements in buffer at any one time
      * @param scraper a scraper which will provide valid BufferedImage instances
      * @param ocrEngine extracts text from images using Ocular Character Recognition
+     * @param bufferSize maximum number of elements in buffer at any one time. must be > 0.
      * @param buffer the buffer which ImageData instances will be added to
      */
-    public ImageDataBufferTask(int bufferSize, Scraper scraper, OCREngine ocrEngine, BlockingQueue<ImageData> buffer) {
-        assert(bufferSize > 0) : "bufferSize must be > 0";
+    public ImageDataBufferTask(Scraper scraper, OCREngine ocrEngine, int bufferSize, BlockingQueue<ImageData> buffer) {
         assert(scraper != null) : "null value supplied for scraper";
-        assert(buffer != null) : "null value supplied for imageBuffer";
         assert(ocrEngine != null) : "null value supplied for ocrEngine";
+        assert(bufferSize > 0) : "bufferSize must be > 0";
+        assert(buffer != null) : "null value supplied for imageBuffer";
+
         this.bufferSize = bufferSize;
         this.scraper = scraper;
         this.buffer = buffer;

@@ -1,5 +1,7 @@
 package codes.lemon.sss;
 
+import codes.lemon.sss.scrapers.DiskScraper;
+
 import java.time.Duration;
 import java.time.Instant;
 

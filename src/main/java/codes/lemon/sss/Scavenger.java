@@ -46,22 +46,42 @@ public class Scavenger {
         private OCREngine ocrEngine;
         private List<Hunter> hunters;
         private ResultsManager resultsManager;
-        private int bufferSize = 20;
+        private int imageBufferSize = 16;
+        private int resultBufferSize = 8;
         private boolean ocrEnabled = true;
         private boolean huntingEnabled = true;
         private boolean resultsManagerEnabled = true;
 
+        /**
+         *  Sets the scraper that will be used to obtain images for analysis
+         * @param scraper the scraper
+         * @param <T> Scraper or subtype of Scraper
+         * @return This builder
+         */
         // upper bound wildcard used to allow subclasses of Scraper implementations to be used
         public <T extends Scraper> Builder setScraper(T scraper) {
             this.scraper = Objects.requireNonNull(scraper);
             return this;
         }
 
+        /**
+         * Sets the OCR engine that will be used to extract text from images
+         * @param ocrEngine the ocrEngine
+         * @param <T> OCREngine or a subtype of OCREngine
+         * @return This builder
+         */
         public <T extends OCREngine> Builder setOCREnging(T ocrEngine) {
             this.ocrEngine = Objects.requireNonNull(ocrEngine);
             return this;
         }
 
+        /**
+         * Sets the HunterFactory that will provide Hunter implementations to
+         * analyse images & extracted text
+         * @param hunterFactory the HunterFactory
+         * @param <T> HunterFactory or a subtype of HunterFactory
+         * @return This builder
+         */
         public <T extends HunterFactory> Builder setHunterFactory(T hunterFactory) {
             HunterFactory factory = Objects.requireNonNull(hunterFactory);
             // new list to prevent client modifying list during execution. Hunters are immutable so no need to make deep copies
@@ -75,29 +95,73 @@ public class Scavenger {
             return this;
         }
 
+        /**
+         * Sets the results manager which will log results.
+         * @param resultsManager the results manager
+         * @param <T> ResultsManager or subtype of ResultsManager
+         * @return This builder
+         */
         public <T extends ResultsManager> Builder setResultsManager(T resultsManager) {
             this.resultsManager = Objects.requireNonNull(resultsManager);
             return this;
         }
 
-        public Builder setBufferSize(int bufferSize) {
+        /**
+         * Sets the image buffer size. This determines the number of images which will be
+         * preloaded and stored in a buffer until they are required.
+         * @param bufferSize maximum number of images in buffer. Must be > 0
+         * @return This builder
+         */
+        public Builder setImageBufferSize(int bufferSize) {
             if (bufferSize > 0) {
-                this.bufferSize = bufferSize;
+                this.imageBufferSize = bufferSize;
             }
             return this;
         }
 
-        public Builder enableOCR(boolean ocrEnabled) {
-            this.ocrEnabled = ocrEnabled;
-
+        /**
+         * Sets the result buffer size. This determines the number of results which will be
+         * found in advance of clients requests in order to reduce load times when clients request the
+         * next result be loaded.
+         * @param bufferSize maximum number of results in buffer. Must be > 0
+         * @return This builder
+         */
+        public Builder setResultBufferSize(int bufferSize) {
+            if (bufferSize > 0) {
+                this.resultBufferSize = bufferSize;
+            }
             return this;
         }
 
+        /**
+         * Enable(default) or disable OCR functionality. Disabling OCR functionality will
+         * override <i>setOCREngine()</i>.
+         * @param ocrEnabled true to enable, false to disable
+         * @return This builder
+         */
+        public Builder enableOCR(boolean ocrEnabled) {
+            this.ocrEnabled = ocrEnabled;
+            return this;
+        }
+
+        /**
+         * Enable(default) or disable hunting functionality. Disabling hunting will override
+         * <i>setHunterFactory()</i>. This allows Scavenger to return image data for every image
+         * provided by the Scraper.
+         * @param huntingEnabled true to enable, false to disable
+         * @return This builder.
+         */
         public Builder enableHunting(boolean huntingEnabled) {
             this.huntingEnabled = huntingEnabled;
             return this;
         }
 
+        /**
+         * Enable(default) or disable results manager functionality. Disabling results manager
+         * will override <i>setResultsManager()</i>
+         * @param resultsManagerEnabled true to enable, false to disable
+         * @return This builder.
+         */
         public Builder enableResultsManager(boolean resultsManagerEnabled) {
             this.resultsManagerEnabled = resultsManagerEnabled;
             return this;
@@ -142,12 +206,22 @@ public class Scavenger {
             }
         }
 
+        /***
+         * Builds and initialises a Scavenger instance to a valid state before providing clients
+         * access to the Scavenger instance. Provides default implementations in cases where certain
+         * functionality has been enabled but no custom implementation has been provided. Also releases
+         * unused resources when certain functionality is disabled.
+         * @return a Scavenger instance initialised to a valid state
+         */
         public Scavenger build() {
             releaseUnusedResources();
             initialiseRequiredDefaults();
             return new Scavenger(this);
         }
     }
+
+
+
 
     private final ResultsManager resultsManager;
     private final ExecutorService imageBufferExecutor;
@@ -158,11 +232,11 @@ public class Scavenger {
     private Scavenger(Builder builder) {
         imageBufferExecutor = Executors.newSingleThreadExecutor();
         BlockingQueue<ImageData> imageBuffer = new LinkedBlockingQueue<>();
-        imageBufferExecutor.submit(new ImageDataBufferTask(builder.bufferSize, builder.scraper, builder.ocrEngine, imageBuffer));
+        imageBufferExecutor.submit(new ImageDataBufferTask(builder.scraper, builder.ocrEngine, builder.imageBufferSize, imageBuffer));
 
         huntingExecutor = Executors.newSingleThreadExecutor();
         resultBuffer = new LinkedBlockingQueue<>();
-        huntingExecutor.submit(new HuntingTask(imageBuffer, builder.hunters, resultBuffer));
+        huntingExecutor.submit(new HuntingTask(imageBuffer, builder.hunters, builder.resultBufferSize, resultBuffer));
 
         resultsManager = builder.resultsManager;
         loadInitialResult(); // sets currentResult
