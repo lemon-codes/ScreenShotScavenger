@@ -1,10 +1,7 @@
 package codes.lemon.sss;
 import java.util.*;
 import java.awt.image.BufferedImage;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
 import codes.lemon.sss.hunters.*;
 import codes.lemon.sss.scrapers.*;
@@ -225,23 +222,27 @@ public class Scavenger {
 
     private final ResultsManager resultsManager;
     private final ExecutorService imageBufferExecutor;
+    private final Future<?> imageBufferStatus;  // indicates that image buffer is no longer being filled as scraper is empty
     private final ExecutorService huntingExecutor;
+    private final Future<?> huntingStatus;  // indicates that hunting is finished as there are no more images to process
     private final BlockingQueue<ResultData> resultBuffer;
     private ResultData currentResult;
 
     private Scavenger(Builder builder) {
         // start a task in a background thread to obtain images from the Scraper
         // and perform OCR before placing image data in a buffer
-        imageBufferExecutor = Executors.newSingleThreadExecutor();
+        imageBufferExecutor = Executors.newSingleThreadExecutor();  // Limited to 1 thread as Scraper is not thread safe
         BlockingQueue<ImageData> imageBuffer = new LinkedBlockingQueue<>();
-        imageBufferExecutor.submit(new ImageDataBufferTask(builder.scraper, builder.ocrEngine, builder.imageBufferSize, imageBuffer));
+        imageBufferStatus = imageBufferExecutor.submit(new ImageDataBufferTask(builder.scraper, builder.ocrEngine,
+                                                                                builder.imageBufferSize, imageBuffer));
 
         // start a task in a background thread which takes ImageData instances from the buffer
         // and allows hunters to analyse them. This allows us to maintain a buffer of results
         // to drastically reduce client wait times
         huntingExecutor = Executors.newSingleThreadExecutor();
         resultBuffer = new LinkedBlockingQueue<>();
-        huntingExecutor.submit(new HuntingTask(imageBuffer, builder.hunters, builder.resultBufferSize, resultBuffer));
+        huntingStatus = huntingExecutor.submit(new HuntingTask(imageBuffer, imageBufferStatus, builder.hunters,
+                                                                builder.resultBufferSize, resultBuffer));
 
         resultsManager = builder.resultsManager;
         loadInitialResult(); // sets currentResult. Ensures valid state upon initialisation
@@ -292,6 +293,31 @@ public class Scavenger {
             throw new IllegalStateException();
         }
 
+    }
+
+    /**
+     * Returns true if this Scavenger will not be able to load any new results.
+     * This occurs when the Scraper cannot provide any more images and all
+     * buffers are empty.
+     * @return true if the Scraper is finished, else false if it is still working
+     */
+    public boolean isFinished() {
+        if (hasNextResult()) {
+            // we still have results in the buffer for the client to load before we are finished
+            return false;
+        }
+
+        // buffer is empty. Check if it is being refilled
+        if (imageBufferStatus.isDone() && huntingStatus.isDone()) {
+            // image buffer is no longer being refilled.
+            // all images in buffer have been analysed.
+            // we are finished.
+            return true;
+        }
+
+        // there are still images in the buffer to be processed by hunters
+        // we may be able to produce more results so we are not yet finished
+        return false;
     }
 
 
@@ -348,6 +374,7 @@ public class Scavenger {
      * @return ResUltData instance containing details of the most recent result
      */
     public ResultData getResultData() { return currentResult; }
+
 
 
     /**

@@ -65,11 +65,11 @@ class ImageDataBufferTask implements Runnable {
                     buffer.put(imageData);
                     scraper.nextImage();
                 } catch (InterruptedException e) {
-                    shutdown();
+                    finished = true;
                     break;
                 } catch (NoImageAvailableException e) {
                     // scraper can provide no more images
-                    shutdown();
+                    finished = true;
                     break;
                 }
             }
@@ -89,10 +89,5 @@ class ImageDataBufferTask implements Runnable {
         boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
         WritableRaster raster = originalImage.copyData(null);
         return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
-    }
-
-
-    private void shutdown() {
-        finished = true;
     }
 }
