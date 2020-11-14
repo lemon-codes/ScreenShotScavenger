@@ -116,21 +116,26 @@ provides its own accessors to the fields listed above.
     ResultData result = scavenger.getResultData();
     BufferedImage image = result.getImageContent();
 
-Scavenger provides a state-checking method `Boolean hasNextResult()`which allows clients 
-to check that the Scavenger is ready to load the next result. Clients can load the next result
-by calling `void loadNextResult();`. Clients are required to use `hasNextResult()` to ensure 
-they only call `loadNextImage` at times when it is safe to do so. Clients which fail to check
-`hasNextResult()` before attempting to load the next result risk triggering an unchecked
-IllegalStateException. It was decided a checked exception was not appropriate since it should
+Scavenger provides two state-checking methods. The first `boolean hasNextResult()` allows clients 
+to check that the Scavenger is ready to load the next result. The second `boolean isFinished()` allows
+clients to check if the Scacenger is finished and will be unable to provide more results in the future.
+Clients can load the next result by calling `void loadNextResult();`. Clients are required to 
+use `hasNextResult()` to ensure they only call `loadNextImage()` at times when it is safe to do so. 
+Clients which fail to check`hasNextResult()` before attempting to load the next result risk 
+triggering an unchecked IllegalStateException. 
+It was decided a checked exception was not appropriate since it should
 not expect to be encountered if clients use the state checking method as expected. The use of an 
 unchecked exception allows for clean client code (without try catch) as shown below. 
 
-    while (condition) {
+    while (!scavenger.isFinished()) {
         while (scavenger.hasNextResult() {
             scavenger.getNextResult();
             // process result before loading next result when available
         }
     }
+It is recommended that clients use the `isFinished()` method as shown above to prevent clients 
+hanging whilst waiting for `hasNextImage()` to return true (which will never happen if all 
+images have been processed).
 
 To shutdown gracefully and ensure results are written to disk (by closing open resources) call
     
