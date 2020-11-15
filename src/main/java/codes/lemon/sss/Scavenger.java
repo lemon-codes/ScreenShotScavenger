@@ -42,12 +42,12 @@ public class Scavenger {
         private Scraper scraper;
         private OCREngine ocrEngine;
         private List<Hunter> hunters;
-        private ResultsManager resultsManager;
+        private ResultManager resultManager;
         private int imageBufferSize = 16;
         private int resultBufferSize = 8;
         private boolean ocrEnabled = true;
         private boolean huntingEnabled = true;
-        private boolean resultsManagerEnabled = true;
+        private boolean resultManagerEnabled = true;
 
         /**
          *  Sets the scraper that will be used to obtain images for analysis
@@ -94,12 +94,12 @@ public class Scavenger {
 
         /**
          * Sets the results manager which will log results.
-         * @param resultsManager the results manager
-         * @param <T> ResultsManager or subtype of ResultsManager
+         * @param resultManager the results manager
+         * @param <T> ResultManager or subtype of ResultManager
          * @return This builder
          */
-        public <T extends ResultsManager> Builder setResultsManager(T resultsManager) {
-            this.resultsManager = Objects.requireNonNull(resultsManager);
+        public <T extends ResultManager> Builder setResultManager(T resultManager) {
+            this.resultManager = Objects.requireNonNull(resultManager);
             return this;
         }
 
@@ -155,12 +155,12 @@ public class Scavenger {
 
         /**
          * Enable(default) or disable results manager functionality. Disabling results manager
-         * will override <i>setResultsManager()</i>
-         * @param resultsManagerEnabled true to enable, false to disable
+         * will override <i>setResultManager()</i>
+         * @param resultManagerEnabled true to enable, false to disable
          * @return This builder.
          */
-        public Builder enableResultsManager(boolean resultsManagerEnabled) {
-            this.resultsManagerEnabled = resultsManagerEnabled;
+        public Builder enableResultManager(boolean resultManagerEnabled) {
+            this.resultManagerEnabled = resultManagerEnabled;
             return this;
         }
 
@@ -173,7 +173,7 @@ public class Scavenger {
          */
         private void releaseUnusedResources() {
             ocrEngine = ocrEnabled ? ocrEngine : OCREngine.EMPTY_OCR_ENGINE;
-            resultsManager = resultsManagerEnabled ? resultsManager : ResultsManager.EMPTY_RESULT_MANAGER;
+            resultManager = resultManagerEnabled ? resultManager : ResultManager.EMPTY_RESULT_MANAGER;
 
             if (!huntingEnabled) {
                 hunters = new ArrayList<>();
@@ -198,8 +198,8 @@ public class Scavenger {
                 hunters = HunterFactory.getDefaultHunterFactoryInstance().getInitializedHunters();
             }
 
-            if (resultsManagerEnabled && (resultsManager == null)) {
-                resultsManager = new ResultsManagerCSV();
+            if (resultManagerEnabled && (resultManager == null)) {
+                resultManager = new ResultManagerCSV();
             }
         }
 
@@ -220,7 +220,7 @@ public class Scavenger {
 
 
 
-    private final ResultsManager resultsManager;
+    private final ResultManager resultManager;
     private final ExecutorService imageBufferExecutor;
     private final Future<?> imageBufferStatus;  // indicates that image buffer is no longer being filled as scraper is empty
     private final ExecutorService huntingExecutor;
@@ -244,7 +244,7 @@ public class Scavenger {
         huntingStatus = huntingExecutor.submit(new HuntingTask(imageBuffer, imageBufferStatus, builder.hunters,
                                                                 builder.resultBufferSize, resultBuffer));
 
-        resultsManager = builder.resultsManager;
+        resultManager = builder.resultManager;
         loadInitialResult(); // sets currentResult. Ensures valid state upon initialisation
     }
 
@@ -256,7 +256,7 @@ public class Scavenger {
         try {
             // blocks until a result is available
             currentResult = resultBuffer.take();
-            resultsManager.addResult(currentResult);
+            resultManager.addResult(currentResult);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -288,7 +288,7 @@ public class Scavenger {
     public void loadNextResult() {
         try {
             currentResult = resultBuffer.remove();
-            resultsManager.addResult(currentResult);
+            resultManager.addResult(currentResult);
         } catch (NoSuchElementException e) {
             throw new IllegalStateException();
         }
@@ -381,7 +381,7 @@ public class Scavenger {
      * Prints results that have been logged since initialisation.
      */
     public void printResults() {
-        resultsManager.printResults();
+        resultManager.printResults();
     }
 
 
@@ -397,7 +397,7 @@ public class Scavenger {
      * Cleans up and exits
      */
     public void exit() {
-        resultsManager.exit();
+        resultManager.exit();
         imageBufferExecutor.shutdownNow();
         huntingExecutor.shutdownNow();
     }

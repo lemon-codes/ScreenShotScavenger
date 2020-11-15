@@ -3,7 +3,7 @@ package codes.lemon.sss;
 /***
  * A ResultManager implementation which discards all results passed to it.
  */
-class ResultsManagerEmpty implements ResultsManager{
+class ResultManagerEmpty implements ResultManager {
     /***
      * Discards any results passed in
      * @param result a result to be discarded

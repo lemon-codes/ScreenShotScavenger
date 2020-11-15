@@ -14,10 +14,14 @@ import java.util.List;
  * A results manager which accepts one result at a time.
  * Results can be added continuously and all results and details about those
  * results are stored in memory and on disk by default. A copy of each image
- * is saved to disk as a png file. Details of each result are written to a CSV file.
+ * is saved to disk as a png file in a folder named "huntedImages" located in
+ * the current working directory. Details of each result are written to a CSV file
+ * named "AbbreviatedResults.csv" also in the current working directory.
+ * By default hunted images and result details are saved to disk and stored in
+ * memory.
  *
  * */
-public class ResultsManagerCSV implements ResultsManager {
+public class ResultManagerCSV implements ResultManager {
     private static final boolean SAVE_IMAGES_TO_DISK = true;
     private static final boolean SAVE_RESULTS_TO_DISK = true;
     private static final boolean STORE_RESULTS_IN_MEMORY = true;  // set to false to reduce memory footprint. printing results will no longer work
@@ -26,24 +30,13 @@ public class ResultsManagerCSV implements ResultsManager {
     private final List<ResultData> results;
     private CSVWriter resultWriter;
 
-    public ResultsManagerCSV() {
+    public ResultManagerCSV() {
         results = new ArrayList<>();
         if (SAVE_IMAGES_TO_DISK) {
             createOutFolder();
         }
         if (SAVE_RESULTS_TO_DISK) {
-            // TODO: move to new method
-            File resultsFile = new File(RESULTS_FILE_NAME);
-            try {
-                FileWriter writer = new FileWriter(resultsFile);
-                resultWriter = new CSVWriter(writer);
-                String[] header = {"Image ID", "Result Author", "Result Details"};
-                resultWriter.writeNext(header);
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-            assert(resultWriter != null) : "CSVWriter was not initialized";
+            prepareResultsFile();
         }
     }
 
@@ -63,6 +56,25 @@ public class ResultsManagerCSV implements ResultsManager {
                 System.out.println("No images will be saved to storage.");
             }
         }
+    }
+
+    /**
+     * Creates a new CSV file in the current working directory to store result details.
+     * Writes a header to the CSV file.
+     * If a file with the same name already exists it is overwritten.
+     */
+    private void prepareResultsFile() {
+        File resultsFile = new File(RESULTS_FILE_NAME);
+        try {
+            FileWriter writer = new FileWriter(resultsFile);
+            resultWriter = new CSVWriter(writer);
+            String[] header = {"Image ID", "Result Author", "Result Details"};
+            resultWriter.writeNext(header);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        assert(resultWriter != null) : "CSVWriter was not initialized";
     }
 
     /***

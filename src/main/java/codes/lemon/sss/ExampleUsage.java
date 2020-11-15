@@ -22,7 +22,7 @@ public class ExampleUsage {
     public void run() {
         int imagesFound = 0;
         Instant start = Instant.now();
-        while (imagesFound < 500 && !scavenger.isFinished()) {
+        while (imagesFound < 20 && !scavenger.isFinished()) {
             while (scavenger.hasNextResult()) {
                 scavenger.loadNextResult();
                 imagesFound++;

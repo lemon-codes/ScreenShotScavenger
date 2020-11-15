@@ -146,6 +146,12 @@ Alternatively, to print results first before exit, call
     scavenger.printResultsAndExit()
 
 ## Example Results
+The default ResultManager implementation is ResultManagerCSV. It stores a copy of all hunted
+images in a folder named "huntedImages" which is created in the current working directory. 
+Result details are stored in CSV format in a file names "AbbreviatedResults.csv", which is
+also created in the current working directory. Using Below is an example of results printed to STDOUT
+by ResultManagerCSV.
+
     n6xzpt.png | SENSITIVE_KEYWORD_HUNTER | Detected keyword: "password"
     n6xzmi.png | PATTERN_MATCHING_HUNTER | "redacted@redacted.com" matched with regex: [a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+
     n6xzjg.png | SENSITIVE_KEYWORD_HUNTER | Detected keyword: "token"
