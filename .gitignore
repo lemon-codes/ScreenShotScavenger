@@ -30,6 +30,7 @@ dataset/
 
 # results
 AbbreviatedResults.csv
+Results.csv
 huntedImages/
 
 # uml
