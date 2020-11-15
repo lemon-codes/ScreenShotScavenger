@@ -21,9 +21,9 @@ import java.util.concurrent.*;
  * @author lemon
  */
 public class PrntscScraper implements Scraper{
-    private static final int MIN_IMAGES_IN_BUFFER = 24; // 24
+    private static final int MIN_IMAGES_IN_BUFFER = 8; // 24
     private static final int THREADS = 2;
-    private static final int BATCH_DOWNLOAD_SIZE = 12; // 12
+    private static final int BATCH_DOWNLOAD_SIZE = 4; // 12
 
     private final ExecutorService pool;
     private final BlockingQueue<PrntscImage> imageBuffer;
@@ -112,7 +112,7 @@ public class PrntscScraper implements Scraper{
     /**
      * Waits for all threads to finish their tasks then releases used resources.
      */
-    public void finishThenTerminate() {
+    public void shutdown() {
         pool.shutdown();
         while (!pool.isTerminated()) {
             // block until all tasks have finished

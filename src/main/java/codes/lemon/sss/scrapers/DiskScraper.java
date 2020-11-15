@@ -65,4 +65,11 @@ public class DiskScraper implements Scraper {
         }
         return image;
     }
+
+    /**
+     * Free resources and finish up
+     */
+    public void shutdown() {
+        images = null;
+    }
 }

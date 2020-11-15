@@ -66,6 +66,7 @@ class ImageDataBufferTask implements Runnable {
                     scraper.nextImage();
                 } catch (InterruptedException e) {
                     finished = true;
+                    scraper.shutdown();
                     break;
                 } catch (NoImageAvailableException e) {
                     // scraper can provide no more images

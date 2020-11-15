@@ -33,6 +33,11 @@ public interface Scraper {
      */
     BufferedImage getImageContent();
 
+    /**
+     * Free resources and finish up
+     */
+    void shutdown();
+
 
     //void registerObserver(Observer O);
 
