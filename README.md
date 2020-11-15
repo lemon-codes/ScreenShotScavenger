@@ -176,6 +176,6 @@ outside the scope of this project and will remain so due to time constraints imp
 Tesseract v3 does not produce such warning messages and has similarly accurate results as 
 Tesseract v4 for this use case. 
 
-##Credit
+## Credit
 
 This project was inspired by [shotlooter](https://github.com/utkusen/shotlooter)
