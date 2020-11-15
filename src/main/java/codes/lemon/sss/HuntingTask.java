@@ -69,7 +69,6 @@ class HuntingTask implements Runnable {
                     image = imageBuffer.take(); // blocks until an element is available
                 } catch (InterruptedException e) {
                     finished = true;
-                    System.out.println("HUNTING THREAD ENDED");
                     break;
                 }
                 for (Hunter hunter : hunters) {

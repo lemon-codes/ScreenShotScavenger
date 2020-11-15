@@ -199,7 +199,7 @@ public class Scavenger {
             }
 
             if (resultManagerEnabled && (resultManager == null)) {
-                resultManager = new ResultManagerCSV();
+                resultManager = new AbbreviatedResultManagerCSV();
             }
         }
 

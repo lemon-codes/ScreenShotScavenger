@@ -12,7 +12,7 @@ public class ExampleUsage {
         scavenger = new Scavenger.Builder().build();
 
         //scavenger = new Scavenger.Builder().setScraper(new PrntscScraper("aaaaaa")).build();
-        //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).build();
+        //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).setResultManager(new ExtensiveResultManagerCSV()).build();
         //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).enableResultsManager(false).build();
     }
     /***
