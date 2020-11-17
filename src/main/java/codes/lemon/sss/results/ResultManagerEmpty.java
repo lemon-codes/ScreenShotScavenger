@@ -1,4 +1,7 @@
-package codes.lemon.sss;
+package codes.lemon.sss.results;
+
+import codes.lemon.sss.results.ResultManager;
+import codes.lemon.sss.results.ResultData;
 
 /***
  * A ResultManager implementation which discards all results passed to it.

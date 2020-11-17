@@ -1,5 +1,7 @@
-package codes.lemon.sss;
+package codes.lemon.sss.results;
 
+import codes.lemon.sss.results.ResultManager;
+import codes.lemon.sss.results.ResultData;
 import com.opencsv.CSVWriter;
 
 import javax.imageio.ImageIO;

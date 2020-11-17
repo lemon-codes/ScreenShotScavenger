@@ -110,7 +110,7 @@ state can be queried using getters to obtain details about the currently loaded 
     String resultAuthor = scavenger.getResultAuthor();
     String resultDetails = scavenger.getResultComment();
 
-The Scraper also provides access to the codes.lemon.sss.ResultData instance which 
+The Scraper also provides access to the codes.lemon.sss.results.ResultData instance which 
 provides its own accessors to the fields listed above.
 
     ResultData result = scavenger.getResultData();

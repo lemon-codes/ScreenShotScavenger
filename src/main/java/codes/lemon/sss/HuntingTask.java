@@ -1,6 +1,8 @@
 package codes.lemon.sss;
 
 import codes.lemon.sss.hunters.Hunter;
+import codes.lemon.sss.results.ResultData;
+import codes.lemon.sss.results.ResultDataImp;
 
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -76,7 +78,7 @@ class HuntingTask implements Runnable {
                     if (resultDetails != null) {
                         // successful hunt
                         String resultAuthor = hunter.getHunterModuleName();
-                        ResultData result = new ResultDataImp(image, resultAuthor, resultDetails);
+                        ResultData result = new ResultDataImp(resultAuthor, resultDetails, image.getID(), image.getContent(), image.getText());
                         resultBuffer.add(result); // blocks until result is added
                     }
                 }

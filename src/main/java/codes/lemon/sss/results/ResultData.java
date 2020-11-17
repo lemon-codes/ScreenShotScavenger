@@ -1,4 +1,4 @@
-package codes.lemon.sss;
+package codes.lemon.sss.results;
 
 import java.awt.image.BufferedImage;
 
@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage;
  * of the ResultData instance. Used by the scavenger to represent its state and
  * communicate with the ResultsManager.
  */
-interface ResultData {
+public interface ResultData {
 
 
     /***

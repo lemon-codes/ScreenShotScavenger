@@ -1,6 +1,9 @@
-package codes.lemon.sss;
+package codes.lemon.sss.results;
 
-public class AbbreviatedResultManagerCSV extends AbstractResultManagerCSV{
+import codes.lemon.sss.results.AbstractResultManagerCSV;
+import codes.lemon.sss.results.ResultData;
+
+public class AbbreviatedResultManagerCSV extends AbstractResultManagerCSV {
     private static final String[] CSV_HEADER = {"Image ID", "Result Author", "Result Details"};
     private static final String[] PRINT_HEADER = {"Image ID", "Result Author", "Result Details"};
     /**

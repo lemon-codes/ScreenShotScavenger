@@ -5,13 +5,13 @@ import java.awt.image.WritableRaster;
 import java.util.Objects;
 
 /***
- * This class is used to store details of an individual image.
+ * A class used to store details of an individual image.
  * It stores: - an ID which identifies the image
  *            - the contents of the image. Access provided through the BufferedImage class
  *            - text visible in the image (extracted using OCR)
  *
- *  TODO: Consider returning deep copy of BufferedImage in getImageContent to
- *        make instances of ImageData immutable.
+ * Instances of this class are immutable. Deep copies are used where methods return mutable objects
+ * to ensure the immutability of ImageData instances.
  */
 
 final class ImageData {
@@ -67,8 +67,10 @@ final class ImageData {
 
 
     /***
-     * Returns a deep copy of a BufferedImage. A deep copy is useful when we want to make alterations to a
-     * BufferedImage while maintaining an unmodified copy of the original.
+     * Returns a deep copy of a BufferedImage.
+     * Since BufferedImage instances are mutable, a deep copy is required to allow clients
+     * to access and modify a BufferedImage instance without altering the original instance.
+     * This can be used to help ensure the immutability of the parent class.
      * @param originalImage the image to be copied
      * @return a deep copy (value copy) of originalImage
      */

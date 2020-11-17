@@ -1,4 +1,6 @@
-package codes.lemon.sss;
+package codes.lemon.sss.results;
+
+import codes.lemon.sss.results.ResultManagerEmpty;
 
 /***
  * A result manager accepts one result at a time. How the result data is processed

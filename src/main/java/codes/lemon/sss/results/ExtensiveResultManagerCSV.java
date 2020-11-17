@@ -1,4 +1,7 @@
-package codes.lemon.sss;
+package codes.lemon.sss.results;
+
+import codes.lemon.sss.results.AbstractResultManagerCSV;
+import codes.lemon.sss.results.ResultData;
 
 public class ExtensiveResultManagerCSV extends AbstractResultManagerCSV {
     private static final String[] CSV_HEADER = {"Image ID", "Result Author", "Result Details", "Extracted Text"};

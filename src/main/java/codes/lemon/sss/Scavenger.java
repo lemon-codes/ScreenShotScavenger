@@ -4,6 +4,9 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.*;
 
 import codes.lemon.sss.hunters.*;
+import codes.lemon.sss.results.AbbreviatedResultManagerCSV;
+import codes.lemon.sss.results.ResultData;
+import codes.lemon.sss.results.ResultManager;
 import codes.lemon.sss.scrapers.*;
 
 /***
