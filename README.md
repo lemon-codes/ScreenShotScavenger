@@ -1,11 +1,25 @@
 # ScreenShotScavenger v0.9
 Notice: Version 0.9. Project is still in early development and APIs may be subject to 
 change before final release.
-## Overview
+
+## Introduction
 ScreenShotScavenger is a recon tool designed to identify leaks of sensitive information 
-in screenshot images. Ocular Chatacter Recognition (OCR) is used to extract visible text 
+in screenshot images. Ocular Character Recognition (OCR) is used to extract visible text 
 from images to aid analysis. The modular design makes it simple to obtain images from a 
-custom source, incorporate new technologies and to hunt for specific types of information.
+custom source, to hunt for specific types of information, incorporate new technologies in
+the hunting process and to alter how results are processed.
+
+## Overview
+The Scavenger is stateful. It holds the details of one result (flagged image) at a time
+and provides clients with accessors to access details of that result. The 
+Scavengers state is updated when the client requests the next result be loaded.
+
+A scraper provides images for analysis. Ocular Character Recognition (OCR) is utilized to 
+extract visible text from each image. Hunter modules then analyse each image and
+accompanying text for indicators of sensitive data. We have a result when a Hunter finds 
+sensitive data. This result can then be loaded by the client. Each result loaded by the
+client is passed to a result manager for logging. Custom implementations of all components
+mentioned above can be used to tailor ScreenShotScavenger to suit each client's use-case.
 
 ScreenShotScavenger is multithreaded. Images are obtained and analysed continuously in 
 background threads allowing us to have results preloaded before the client requests them.
@@ -13,42 +27,7 @@ This greatly improves ScreenShotScavenger's response time to client requests.
 
 A Scavenger instance is constructed using a Builder, allowing custom components to be 
 supplied by the client and for certain features to be disabled when not required.
-
-The scavenger is stateful. It holds the details of one flagged image at a time, until 
-the client requests the next flagged image be loaded. All result details are passed to 
-the result manager in the background. 
-
-ScreenShotScavenger makes use of a scraper to obtain images for analysis. A buffer sits 
-between the Scraper and the Scavenger to reduce the impact of any latency issues caused 
-by Scraper implementations potential reliance on network I/O. New scrapers can be written 
-and used by ScreenShotScavenger to obtain images from a custom source. The default 
-implementation obtains screenshot images hosted publicly at prnt.sc (LightShot). It is 
-multithreaded, however rate limiting performed on requests by LightShot servers limit 
-the potential. It was trivial to write a Scraper for images hosted at prnt.sc as the images
- are identified by 6 digit codes which can be iterated through to obtain consecutive images. 
- This is something the LightShot team should seriously consider changing to reduce the chances 
- of information leaks being found by malicious actors. 
-
-Ocular Character Recognition is utilised to extract visible text from images provided by the 
-scraper. The default implementation uses the Tesseract Engine (via Tess4J) to perform OCR. 
-No pre-processing is performed on images as Tesseract is able to accurately extract text 
-from screenshot images without pre-processing. ScreenShotScavengers modular design makes 
-it trivial to utilise a different OCR engine or to perform pre-processing on images for 
-increased accuracy if the use case requires it. 
-
-Info leaks are found by Hunter modules. Hunter modules are provided access to each image 
-and the text extracted via OCR. Multiple Hunter modules can be ran against each image. 
-New Hunter modules can be written and used by ScreenShotScavenger in order to utilise 
-new methods of analysis and to hunt for specific types of information leaks. The provided 
-Hunter modules look for multiple keywords and patterns in the extracted text to find a variety 
-of sensitive data. A Hunter module which makes use of TemplateMatching to identify logos inside 
-screenshots may be provided soon.  
-
-Results are stored by the ResultManager. New ResultManagers can be written to accommodate 
-varying use cases. The default implementation stores flagged images to disk in a folder 
-named "HuntedImages" and stores abbreviated result details on disk in a CSV file names 
-"AbbreviatedResults.csv". Abbreviated results include imageID, the unique name of hunter 
-module that flagged image, reason for being flagged. 
+Default implementations are provided for all required components.
 
 ## Requirements/Dependencies
 Environment dependencies:
@@ -61,9 +40,6 @@ Package dependencies managed by Maven:
 * jSoup v1.13.1 - Used by the prnt.sc Scraper to extract absolute image urls from web pages.
 * OpenCSV v5.2 - Used by the results manager to save results to disk
 
-
-
-
 ##  Supported File Formats
 Supports all file formats supported by Tess4J:
 * PNG
@@ -73,10 +49,33 @@ Supports all file formats supported by Tess4J:
 * BMP
 
 ## Usage
-To run an example usage which hunts for 50 images hosted at prnt.sc before printing and 
+Before using ScreenShotScavenger, a client must import the required classes/interfaces.
+Exactly which imports are required will vary with each use case. Shown below is list
+of the imports required to execute the usage examples which follow. For a complete list
+of ScreenShotScavenger's exports, see the javadoc.
+
+    import codes.lemon.sss.Scavenger; // ScreenShotScavenger
+    import codes.lemon.sss.ExampleUsage;  // a basic example client
+    import codes.lemon.sss.scrapers.DiskScraper;  // supplies images stored on disk
+    import codes.lemon.sss.results.ResultData;  // stores details of a result
+    
+Other noteworthy classes/interfaces exported by ScreenShotScavenger are:
+
+    import codes.lemon.sss.scraper.Scraper;  // implementations of this interface can be used to supply images to Scavenger 
+    import codes.lemon.sss.hunter.HunterFactory; // implementations of this interface can be used to supply Hunter instances to Scavenger
+    import codes.lemon.sss.hunter.Hunter;  // implementations of this interface can be used by Scavanger to analyse images for sensitive data
+    import codes.lemon.sss.result.ResultManager;  // implementations of this interface can be used by Scavenger to process and log results
+    import codes.lemon sss.OCREngine; // implementations of this interface can be used by Scavenger to extract text visible in images.
+    
+As you may have noticed, some components are contained within subpackages of
+`codes.lemon.sss`. These are components which are likely to grow in complexity and 
+in number of implementations. The subpackages are as follows; `codes.lemon.sss.scrapers`,
+`codes.lemon.sss.hunters` and `codes.lemon.sss.results`. For full details see documentation.
+
+To run an example usage which hunts for 20 images hosted at prnt.sc before printing and 
 saving results use:
 
-    ExampleUsage example = new ExampleUsage();<br />
+    ExampleUsage example = new ExampleUsage();
     example.run();
 
 To manually instantiate a new Scavenger instance, the Builder must be used. This allows the 
@@ -89,7 +88,7 @@ build() is called. This allows us to initialise only the default implementations
 run time and to free resources which will not be used. Image and result buffer sizes can also
 be set. 
 
-    // Create instance with all functionality enabled and default implementations used <br />
+    // Create instance with all functionality enabled and default implementations used
     Scavenger scavenger = new Scavenger.Builder().build();  
     
     // Create instance with custom scraper and image buffer size. Hunting and report manager disabled.
@@ -163,6 +162,39 @@ by ResultManagerCSV.
     n6xzh3.png | SENSITIVE_KEYWORD_HUNTER | Detected keyword: "password"
     n6xzcd.png | PATTERN_MATCHING_HUNTER | "redacted@redacted.com" matched with regex: [a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+
     n6y006.png | SENSITIVE_KEYWORD_HUNTER | Detected keyword: "password"
+
+## Implementation Details
+ScreenShotScavenger makes use of a scraper to obtain images for analysis. A buffer sits 
+between the Scraper and the Scavenger to reduce the impact of any latency issues caused 
+by Scraper implementations potential reliance on network I/O. New scrapers can be written 
+and used by ScreenShotScavenger to obtain images from a custom source. The default 
+implementation obtains screenshot images hosted publicly at prnt.sc (LightShot). It is 
+multithreaded, however rate limiting performed on requests by LightShot servers limit 
+the potential. It was trivial to write a Scraper for images hosted at prnt.sc as the images
+ are identified by 6 digit codes which can be iterated through to obtain consecutive images. 
+ This is something the LightShot team should seriously consider changing to reduce the chances 
+ of information leaks being found by malicious actors. 
+
+Ocular Character Recognition is utilised to extract visible text from images provided by the 
+scraper. The default implementation uses the Tesseract Engine (via Tess4J) to perform OCR. 
+No pre-processing is performed on images as Tesseract is able to accurately extract text 
+from screenshot images without pre-processing. ScreenShotScavengers modular design makes 
+it trivial to utilise a different OCR engine or to perform pre-processing on images for 
+increased accuracy if the use case requires it. 
+
+Info leaks are found by Hunter modules. Hunter modules are provided access to each image 
+and the text extracted via OCR. Multiple Hunter modules can be ran against each image. 
+New Hunter modules can be written and used by ScreenShotScavenger in order to utilise 
+new methods of analysis and to hunt for specific types of information leaks. The provided 
+Hunter modules look for multiple keywords and patterns in the extracted text to find a variety 
+of sensitive data (including private keys & login credentials). A Hunter module which 
+makes use of TemplateMatching to identify logos inside screenshots may be provided soon.  
+
+Results are stored by the ResultManager. New ResultManagers can be written to accommodate 
+varying use cases. The default implementation stores flagged images to disk in a folder 
+named "HuntedImages" and stores abbreviated result details on disk in a CSV file names 
+"AbbreviatedResults.csv". Abbreviated results include imageID, the unique name of hunter 
+module that flagged image, reason for being flagged. 
 
 ## Known Defects
 Some versions of Tesseract write a warning message to stdout if a dpi value is not present in 
