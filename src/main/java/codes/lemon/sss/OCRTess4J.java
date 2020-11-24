@@ -1,5 +1,6 @@
 package codes.lemon.sss;
 import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.Tesseract1;
 import net.sourceforge.tess4j.TesseractException;
 import net.sourceforge.tess4j.util.LoadLibs;
 
@@ -13,9 +14,11 @@ import java.io.File;
  * of instances to 1 because the engine is greedy with system resources.
  */
 public class OCRTess4J implements OCREngine{
+    private static final String DEFAULT_DPI = "300"; // Dots Per Inch
     // tesseract declared as class (static) variable because initialisation & setup
     // are costly and only one instance of the tesseract engine is needed
-    private static final Tesseract tesseract = new Tesseract();
+    // Tesseract1 uses JNA direct mapping for improved performance
+    private static final Tesseract1 tesseract = new Tesseract1();
 
     // configure tesseract to a state where it is ready to process images
     static {
@@ -23,6 +26,8 @@ public class OCRTess4J implements OCREngine{
         File tessDataFolder = LoadLibs.extractTessResources("tessdata");
         //Set the tessdata path
         tesseract.setDatapath(tessDataFolder.getAbsolutePath());
+        // provide default dpi for images which have had metadata stripped
+        tesseract.setTessVariable("user_defined_dpi", DEFAULT_DPI);
         // Quick fix for a bug within tess4j related to Environment locale
         CLibrary.INSTANCE.setlocale(CLibrary.LC_ALL, "C");
     }

@@ -1,6 +1,5 @@
 package codes.lemon.sss.hunters;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /***

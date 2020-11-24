@@ -197,17 +197,14 @@ named "HuntedImages" and stores abbreviated result details on disk in a CSV file
 module that flagged image, reason for being flagged. 
 
 ## Known Defects
-Some versions of Tesseract write a warning message to stdout if a dpi value is not present in 
-an images metadata. This occurs when images are being scraped from a source which has previously 
-stripped all image metadata. This does not appear to effect the end results since Tesseract 
-uses a reasonable dpi in such cases and is still able to extract the text accurately. For the 
-most part the only impact of  this defect is the unsightly warning messages, however there 
-may be edge cases (images with very high or low dpi) where this impacts the accuracy of the 
-results. I am unable to fix this without delving into the code base of Tess4J which falls 
-outside the scope of this project and will remain so due to time constraints imposed by myself. 
-Tesseract v3 does not produce such warning messages and has similarly accurate results as 
-Tesseract v4 for this use case. 
 
+Tesseract may print warnings to STDOUT when it encounters a malformed image, or an image
+which is too small (eg 3x3). This could be prevented by analysing all images manually to
+ensure they meet Tesseract's preconditions and are valid images before attempting OCR. 
+However, since ScreenShotScavenger 
+is expected to process large volumes of images in a timely manner, the performance 
+penalty from performing such additional checks has been deemed unacceptable. Particularly 
+since it is expected to be a rare occurance that such invalid images will be encountered.
 ## Credit
 
 This project was inspired by [shotlooter](https://github.com/utkusen/shotlooter)

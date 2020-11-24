@@ -10,6 +10,7 @@ public class ExampleUsage {
 
     public ExampleUsage() {
         scavenger = new Scavenger.Builder().build();
+        //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).build();
 
         //scavenger = new Scavenger.Builder().setScraper(new PrntscScraper("aaaaaa")).build();
         //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).setResultManager(new ExtensiveResultManagerCSV()).build();
@@ -26,7 +27,8 @@ public class ExampleUsage {
             while (scavenger.hasNextResult()) {
                 scavenger.loadNextResult();
                 imagesFound++;
-                System.out.printf("Flagged image with ID: %s\tTotal images flagged: %d%n", scavenger.getResultImageID(), imagesFound);
+                System.out.printf("[%d] Flagged image with ID: %s\t\tReason: %s\t%n", imagesFound, scavenger.getResultImageID(),
+                                scavenger.getResultComment());
             }
         }
         Instant end = Instant.now();
