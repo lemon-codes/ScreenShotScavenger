@@ -1,7 +1,5 @@
 package codes.lemon.sss.results;
 
-import codes.lemon.sss.results.ResultManager;
-import codes.lemon.sss.results.ResultData;
 import com.opencsv.CSVWriter;
 
 import javax.imageio.ImageIO;
@@ -15,7 +13,7 @@ import java.util.List;
 import java.util.Objects;
 
 /***
- * A abstract results manager which accepts one result at a time.
+ * An abstract results manager which accepts one result at a time.
  * Results can be added continuously and all results and details about those
  * results are stored in memory and on disk by default. A copy of each image
  * is saved to disk as a png file in a folder named "huntedImages" located in
@@ -26,7 +24,7 @@ import java.util.Objects;
  * determined by the subclasses which implement the abstract methods provided
  * by this class.
  * */
-abstract class AbstractResultManagerCSV implements ResultManager {
+public abstract class AbstractResultManagerCSV implements ResultManager {
     private static final boolean SAVE_IMAGES_TO_DISK = true;
     private static final boolean SAVE_RESULTS_TO_DISK = true;
     private static final boolean STORE_RESULTS_IN_MEMORY = true;  // set to false to reduce memory footprint. printing results will no longer work

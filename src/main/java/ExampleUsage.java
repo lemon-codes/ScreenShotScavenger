@@ -1,6 +1,9 @@
-package codes.lemon.sss;
-
+import codes.lemon.sss.Scavenger;
+import codes.lemon.sss.results.AbstractResultManagerCSV;
+import codes.lemon.sss.results.ExtensiveResultManagerCSV;
+import codes.lemon.sss.results.ResultData;
 import codes.lemon.sss.scrapers.DiskScraper;
+import codes.lemon.sss.scrapers.PrntscScraper;
 
 import java.time.Duration;
 import java.time.Instant;

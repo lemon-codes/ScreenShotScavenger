@@ -2,9 +2,10 @@ package codes.lemon.sss.scrapers;
 import java.awt.image.BufferedImage;
 
 /**
- * Scrapes/gathers images from a source (implementation dependent).
+ * Scrapes/gathers images from a source (implementation dependent) and provides
+ * clients access to these images.
  * The only requirements are that any implementations generate unique IDs for
- * each image and provide access to those images as java.io.File objects.
+ * each image and provide access to those images as BufferedImage instances.
  * It is the scrapers duty to load a valid image. If the scraper cannot do so
  * instantly then it must work/wait until it can. If the scraper will not be
  * able to provide any more images then it must throw a NoImageAvailableException

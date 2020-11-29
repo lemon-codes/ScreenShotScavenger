@@ -3,9 +3,8 @@ package codes.lemon.sss.hunters;
 import java.util.List;
 
 /***
- * Provides access to the default implementation of this interface.
  * Implementations of this interface provide access to initialised
- * instances of the Hunter interface.
+ * Hunter instances. A default implementation is provided.
  */
 public interface HunterFactory {
     // initialise the default implementation of this interface once

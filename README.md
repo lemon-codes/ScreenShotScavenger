@@ -55,7 +55,7 @@ of the imports required to execute the usage examples which follow. For a comple
 of ScreenShotScavenger's exports, see the javadoc.
 
     import codes.lemon.sss.Scavenger; // ScreenShotScavenger
-    import codes.lemon.sss.ExampleUsage;  // a basic example client
+    import ExampleUsage;  // a basic example client
     import codes.lemon.sss.scrapers.DiskScraper;  // supplies images stored on disk
     import codes.lemon.sss.results.ResultData;  // stores details of a result
     

@@ -1,8 +1,18 @@
 package codes.lemon.sss.results;
 
-import codes.lemon.sss.results.AbstractResultManagerCSV;
-import codes.lemon.sss.results.ResultData;
-
+/***
+ * A results manager which accepts one result at a time but only saves and
+ * prints an abbreviated selection of details. The abbreviated results contain image ID,
+ * image content (as a BufferedImage instance), result author and the result comment
+ * which provides a description of why the image was flagged.
+ * Results can be added continuously and all results and details about those
+ * results are stored in memory and on disk by default. A copy of each image
+ * is saved to disk as a png file in a folder named "huntedImages" located in
+ * the current working directory. Details of each result are written to a CSV file
+ * named "Results.csv" also in the current working directory.
+ * By default hunted images and result details are saved to disk and stored in
+ * memory.
+ * */
 public class AbbreviatedResultManagerCSV extends AbstractResultManagerCSV {
     private static final String[] CSV_HEADER = {"Image ID", "Result Author", "Result Details"};
     private static final String[] PRINT_HEADER = {"Image ID", "Result Author", "Result Details"};

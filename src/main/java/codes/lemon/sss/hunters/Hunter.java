@@ -33,8 +33,8 @@ public interface Hunter {
      * An imageID is also supplied to allow Hunter module implementations to
      * record specific details of the results related to that implementation
      * and index them using consistent image IDs.
-     * A comment containing details of the result is returned if we believe
-     * we have found an indicator of sensitive data. This comment will be logged.
+     * A comment containing details (an explanation) of the result is returned if we believe
+     * we have found an indicator of sensitive data.
      * It is up to the author of the Hunter implementation to decide what
      * information is relevant to include.
      * If no indicator of sensitive data was found, null should be returned.
