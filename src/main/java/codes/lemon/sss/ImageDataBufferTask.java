@@ -52,8 +52,8 @@ class ImageDataBufferTask implements Runnable {
      */
     @Override
     public void run() {
-        while (!finished) {
-            while (buffer.size() < bufferSize) {
+        while (!finished && !Thread.currentThread().isInterrupted()) {
+            while ((buffer.size() < bufferSize) && !Thread.currentThread().isInterrupted()) {
                 String imageID = Objects.requireNonNull(scraper.getImageID());
                 BufferedImage imageContent = Objects.requireNonNull(scraper.getImageContent());
                 // a deep copy of the image is passed to OCR Engine to allow the OCR engine to
@@ -64,13 +64,11 @@ class ImageDataBufferTask implements Runnable {
                     // put() blocks until element successfully added to queue. This ensures no valid images are discarded
                     buffer.put(imageData);
                     scraper.nextImage();
-                } catch (InterruptedException e) {
+                } catch (InterruptedException | NoImageAvailableException e) {
+                    // scraper can provide no more images.
                     finished = true;
                     scraper.shutdown();
-                    break;
-                } catch (NoImageAvailableException e) {
-                    // scraper can provide no more images
-                    finished = true;
+                    Thread.currentThread().interrupt();
                     break;
                 }
             }

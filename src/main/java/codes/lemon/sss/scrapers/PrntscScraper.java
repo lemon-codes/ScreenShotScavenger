@@ -24,6 +24,7 @@ public class PrntscScraper implements Scraper{
     private static final int MIN_IMAGES_IN_BUFFER = 8; // 24
     private static final int THREADS = 2;
     private static final int BATCH_DOWNLOAD_SIZE = 4; // 12
+    private static final long MAX_TIME_TO_WAIT = 10; // max time (in seconds) we will wait for an image to become available
 
     private final ExecutorService pool;
     private final BlockingQueue<PrntscImage> imageBuffer;
@@ -59,25 +60,45 @@ public class PrntscScraper implements Scraper{
      */
     private void initBuffer() {
         downloadNewBatchToBuffer();
-        nextImage();
+        try {
+            nextImage();
+        } catch (NoImageAvailableException e) {
+            e.printStackTrace();
+        }
     }
 
     /***
-     * Load the next image into the scraper.
-     * If this fails we attempt to load the next image
-     * in the buffer.
+     * Loads the next image into the scraper.
+     * This method may block for a maximum of 10 seconds while waiting for an image
+     * to become available at which point an exception is thrown to notify the client
+     * that we failed to load an image.
+     * @throws NoImageAvailableException if a next image cannot be loaded
      */
-    public void nextImage() {
-        try {
-            // take() blocks if the buffer is empty
-            currentImage = imageBuffer.take();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            nextImage();
+    public void nextImage() throws NoImageAvailableException {
+        // isInterrupted() preserves the current interrupted status of the thread
+        if (!Thread.currentThread().isInterrupted()) {
+            downloadNewBatchToBuffer(); // ensure the buffer doesn't become empty
+        } else {
+            // thread has been interrupted - treat as a cancellation
+            shutdown(); // may have been called previously - has no side effects if called repeatedly
+            throw new NoImageAvailableException(); // let the client know that no image is available
         }
-        finally {
-            // ensure the buffer doesn't become empty
-            downloadNewBatchToBuffer();
+
+        PrntscImage nextCurrentImage = null;
+        try {
+            // returns null if timeout is reached
+            nextCurrentImage = imageBuffer.poll(MAX_TIME_TO_WAIT, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            // treat interrupt as a cancel
+            shutdown();                             // free resources
+            Thread.currentThread().interrupt();     // set thread as interrupted
+            throw new NoImageAvailableException();  // let the client know that no image is available
+        }
+        if (nextCurrentImage != null) {
+            currentImage = nextCurrentImage;
+        } else {
+            // we reached the max time to wait before an image became available
+            throw new NoImageAvailableException();
         }
     }
 
@@ -110,13 +131,15 @@ public class PrntscScraper implements Scraper{
     }
 
     /**
-     * Waits for all threads to finish their tasks then releases used resources.
+     * Stops downloading any further images and releases resources.
      */
     public void shutdown() {
-        pool.shutdown();
-        while (!pool.isTerminated()) {
-            // block until all tasks have finished
+        if (!pool.isShutdown()) {
+            pool.shutdownNow();
         }
+        //while (!pool.isTerminated()) {
+            // block until all tasks have finished
+        //}
     }
 
     /***

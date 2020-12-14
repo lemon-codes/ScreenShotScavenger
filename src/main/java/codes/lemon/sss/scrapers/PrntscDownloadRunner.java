@@ -24,12 +24,16 @@ class PrntscDownloadRunner implements Runnable{
      */
     @Override
     public void run() {
+        if (Thread.currentThread().isInterrupted()) {
+            return;
+        }
         PrntscImage image = new PrntscImage(imageID);
         if (image.containsValidImage()) {
             try {
                 buffer.put(image);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
+                // task is finishing anyway so no need to manually exit
             }
         }
 

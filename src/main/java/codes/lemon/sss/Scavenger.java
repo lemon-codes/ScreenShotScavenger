@@ -70,7 +70,7 @@ public class Scavenger {
          * @param <T> OCREngine or a subtype of OCREngine
          * @return This builder
          */
-        public <T extends OCREngine> Builder setOCREnging(T ocrEngine) {
+        public <T extends OCREngine> Builder setOCREngine(T ocrEngine) {
             this.ocrEngine = Objects.requireNonNull(ocrEngine);
             return this;
         }
@@ -258,6 +258,8 @@ public class Scavenger {
     private void loadInitialResult() {
         try {
             // blocks until a result is available
+            // TODO: consider doing this lazily upon first requests to getters()
+            //       this would reduce the time it takes to return from the constructor
             currentResult = resultBuffer.take();
             resultManager.addResult(currentResult);
         } catch (InterruptedException e) {
@@ -285,7 +287,7 @@ public class Scavenger {
      *  Details of the new current result are passed to the Results Manager.
      *  hasNextImage() is a state-checking method which is to be used to ensure successful calls
      *  to this method.
-     *  @Throws IllegalStateException if the Scavenger is unable to load a result.
+     *  @throws IllegalStateException if the Scavenger is unable to load a result.
 
      */
     public void loadNextResult() {
@@ -403,6 +405,7 @@ public class Scavenger {
         resultManager.exit();
         imageBufferExecutor.shutdownNow();
         huntingExecutor.shutdownNow();
+        // awaitTermination() is not called because we don't want client code to wait
     }
 }
 

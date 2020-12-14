@@ -12,12 +12,13 @@ public class ExampleUsage {
     private final Scavenger scavenger;
 
     public ExampleUsage() {
-        scavenger = new Scavenger.Builder().build();
+         scavenger = new Scavenger.Builder().build();
         //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).build();
 
         //scavenger = new Scavenger.Builder().setScraper(new PrntscScraper("aaaaaa")).build();
         //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).setResultManager(new ExtensiveResultManagerCSV()).build();
-        //scavenger = new Scavenger.Builder().setScraper(new DiskScraper()).enableResultsManager(false).build();
+        //Scavenger sscavenger = new Scavenger.Builder().setScraper(new DiskScraper()).enableResultManager(false).build();
+        //scavenger = new Scavenger.Builder().build();
     }
     /***
      * Find 50 images that our Hunter modules have flagged as potentially containing sensitive information.
@@ -26,7 +27,7 @@ public class ExampleUsage {
     public void run() {
         int imagesFound = 0;
         Instant start = Instant.now();
-        while (imagesFound < 20 && !scavenger.isFinished()) {
+        while (imagesFound < 200 && !scavenger.isFinished()) {
             while (scavenger.hasNextResult()) {
                 scavenger.loadNextResult();
                 imagesFound++;
@@ -43,8 +44,6 @@ public class ExampleUsage {
     }
 
     public static void main(String[] args) {
-
-
         ExampleUsage example = new ExampleUsage();
         example.run();
     }
