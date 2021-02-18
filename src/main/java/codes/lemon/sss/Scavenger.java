@@ -232,6 +232,12 @@ public class Scavenger {
     private ResultData currentResult;
 
     private Scavenger(Builder builder) {
+        /*
+        The following Tasks are limited to 1 thread each as they utilise components
+        which are not guaranteed to be thread-safe.
+        Thread-safety is achieved through thread-confinement.
+         */
+
         // start a task in a background thread to obtain images from the Scraper
         // and perform OCR before placing image data in a buffer
         imageBufferExecutor = Executors.newSingleThreadExecutor();  // Limited to 1 thread as Scraper is not thread safe
@@ -403,7 +409,9 @@ public class Scavenger {
      */
     public void exit() {
         resultManager.exit();
+        imageBufferStatus.cancel(true);
         imageBufferExecutor.shutdownNow();
+        huntingStatus.cancel(true);
         huntingExecutor.shutdownNow();
         // awaitTermination() is not called because we don't want client code to wait
     }

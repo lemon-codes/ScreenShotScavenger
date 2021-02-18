@@ -163,6 +163,13 @@ by ResultManagerCSV.
     n6xzcd.png | PATTERN_MATCHING_HUNTER | "redacted@redacted.com" matched with regex: [a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+
     n6y006.png | SENSITIVE_KEYWORD_HUNTER | Detected keyword: "password"
 
+Below are some (redacted) images which have been flagged by ScreenShotScavenger.
+
+![server logins](https://lemon.codes/git-screenshots/ScreenShotScavenger/image.jpg)
+![password resets](https://lemon.codes/git-screenshots/ScreenShotScavenger/image1.jpeg)
+![playstation store codes](https://lemon.codes/git-screenshots/ScreenShotScavenger/image2.jpg)
+![database of contact details](https://lemon.codes/git-screenshots/ScreenShotScavenger/image3.jpg)
+
 ## Implementation Details
 ScreenShotScavenger makes use of a scraper to obtain images for analysis. A buffer sits 
 between the Scraper and the Scavenger to reduce the impact of any latency issues caused 
